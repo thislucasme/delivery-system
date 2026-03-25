@@ -32,22 +32,12 @@
         <header class="flex items-center justify-between mb-8">
             <div>
                 <h1 class="text-2xl font-black text-indigo-600 tracking-tight">QR Generator</h1>
-                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Entrega & UID Tracking</p>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Etiquetas de Entrega</p>
             </div>
             <div class="bg-indigo-100 p-3 rounded-2xl text-indigo-600">
-                <i data-lucide="scan-line" class="w-6 h-6"></i>
+                <i data-lucide="qr-code" class="w-6 h-6"></i>
             </div>
         </header>
-
-        <div class="mb-6 p-4 bg-indigo-600 rounded-3xl shadow-lg shadow-indigo-200">
-            <div class="flex items-center justify-between text-white mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider opacity-80">Leitor (Mock MVP)</span>
-                <i data-lucide="camera" class="w-4 h-4"></i>
-            </div>
-            <button onclick="simulateScan()" class="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-white font-bold text-sm transition-all flex items-center justify-center gap-2">
-                <i data-lucide="qr-code" class="w-4 h-4"></i> SIMULAR LEITURA DE UID
-            </button>
-        </div>
 
         <div class="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-100 mb-6">
             <form id="qrForm" class="space-y-4">
@@ -89,20 +79,19 @@
                 </div>
 
                 <button type="submit" class="w-full py-5 bg-indigo-600 text-white font-black text-lg rounded-2xl shadow-xl active:scale-[0.97] transition-all flex items-center justify-center gap-2">
-                    <i data-lucide="plus-circle" class="w-5 h-5"></i> SALVAR E GERAR UID
+                    <i data-lucide="zap" class="w-5 h-5 fill-current"></i> GERAR QR CODE
                 </button>
             </form>
         </div>
 
         <div id="result-area" class="hidden animate-fade-in flex flex-col items-center">
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-indigo-50 mb-6 flex flex-col items-center w-full text-center">
-                <canvas id="qrcode-canvas" class="mb-4"></canvas>
-                <div id="uid-tag" class="px-4 py-1 bg-gray-100 rounded-full text-[10px] font-mono font-bold text-gray-500 mb-4"></div>
-                <p id="printing-msg" class="text-indigo-600 font-black text-sm uppercase">Etiqueta Pronta!</p>
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-indigo-50 mb-6 flex flex-col items-center w-full">
+                <canvas id="qrcode-canvas" class="mb-6"></canvas>
+                <p id="printing-msg" class="text-indigo-600 font-black text-sm uppercase animate-pulse">Imprimindo QR Code...</p>
             </div>
             
             <button onclick="resetForm()" class="px-6 py-4 bg-gray-100 text-gray-500 font-bold rounded-2xl text-sm flex items-center gap-2">
-                <i data-lucide="refresh-cw" class="w-4 h-4"></i> LIMPAR TELA
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> NOVO CLIENTE
             </button>
         </div>
 
@@ -113,44 +102,12 @@
 
         let savedClientes = JSON.parse(localStorage.getItem('saved_customers')) || [];
 
-        // Gerador de UID
-        const generateUID = () => 'UID-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-
         function toggleTimeInput() {
             const container = document.getElementById('time-container');
             container.classList.toggle('hidden', !document.getElementById('toggle-horario').checked);
         }
 
-        // Simulação de Leitura (Mock)
-        function simulateScan() {
-            if (savedClientes.length === 0) {
-                alert("Nenhum cliente no banco de dados para simular leitura.");
-                return;
-            }
-            
-            // Pega um UID aleatório do seu banco local para simular que escaneou um físico
-            const randomClient = savedClientes[Math.floor(Math.random() * savedClientes.length)];
-            const scannedUID = randomClient.uid;
-
-            alert("QR Code Escaneado com Sucesso! ID: " + scannedUID);
-            
-            // Lógica de preenchimento após "leitura"
-            const client = savedClientes.find(c => c.uid === scannedUID);
-            if(client) {
-                document.getElementById('cliente').value = client.nome;
-                document.getElementById('rua').value = client.rua;
-                document.getElementById('bairro').value = client.bairro;
-                document.getElementById('numero').value = client.numero;
-                document.getElementById('telefone').value = client.telefone;
-                
-                // Feedback visual de sucesso
-                const header = document.querySelector('header');
-                header.classList.add('animate-pulse');
-                setTimeout(() => header.classList.remove('animate-pulse'), 1000);
-            }
-        }
-
-        // Sugestões de Clientes
+        // Sugestões de Clientes (Maneira idêntica ao Bairro)
         function showClientes() {
             const list = document.getElementById('clientes-suggestions');
             list.classList.remove('hidden');
@@ -165,18 +122,18 @@
             if(filtered.length === 0) { list.classList.add('hidden'); return; }
 
             list.innerHTML = filtered.map(c => `
-                <li onclick="fillByUID('${c.uid}')" class="p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-bold cursor-pointer flex justify-between items-center active:bg-indigo-100">
+                <li onclick="selectCliente('${c.nome.replace(/'/g, "\\'")}')" class="p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-bold cursor-pointer flex justify-between items-center active:bg-indigo-100">
                     <div>
                         <p class="text-gray-900">${c.nome}</p>
-                        <p class="text-[10px] text-indigo-500 uppercase font-black">${c.uid} • ${c.bairro}</p>
+                        <p class="text-[10px] text-indigo-500 uppercase font-black">${c.rua}, ${c.numero}</p>
                     </div>
                 </li>
             `).join('');
             list.classList.remove('hidden');
         }
 
-        function fillByUID(uid) {
-            const client = savedClientes.find(c => c.uid === uid);
+        function selectCliente(nome) {
+            const client = savedClientes.find(c => c.nome === nome);
             if(client) {
                 document.getElementById('cliente').value = client.nome;
                 document.getElementById('rua').value = client.rua;
@@ -211,12 +168,8 @@
         document.getElementById('qrForm').onsubmit = (e) => {
             e.preventDefault();
             
-            const nomeInput = document.getElementById('cliente').value.trim();
-            let existingClient = savedClientes.find(c => c.nome.toLowerCase() === nomeInput.toLowerCase());
-
             const data = {
-                uid: existingClient ? existingClient.uid : generateUID(),
-                nome: nomeInput,
+                nome: document.getElementById('cliente').value.trim(),
                 rua: document.getElementById('rua').value.trim(),
                 bairro: document.getElementById('bairro').value.trim(),
                 numero: document.getElementById('numero').value.trim(),
@@ -224,36 +177,37 @@
                 horario: document.getElementById('toggle-horario').checked ? document.getElementById('horario').value : null
             };
 
-            // Salva ou Atualiza
-            if(existingClient) {
-                const idx = savedClientes.indexOf(existingClient);
-                savedClientes[idx] = data;
-            } else {
-                savedClientes.push(data);
-            }
+            // Salva o cliente para o próximo preenchimento
+            const index = savedClientes.findIndex(c => c.nome.toLowerCase() === data.nome.toLowerCase());
+            if(index === -1) savedClientes.push(data);
+            else savedClientes[index] = data;
             localStorage.setItem('saved_customers', JSON.stringify(savedClientes));
 
-            // GERA O QR CODE COM O UID
-            new QRious({
+            // GERA O QR CODE (SEM ERRO DE OVERFLOW)
+            const qr = new QRious({
                 element: document.getElementById('qrcode-canvas'),
-                value: data.uid,
+                value: JSON.stringify(data),
                 size: 200,
                 foreground: '#4f46e5',
                 level: 'M'
             });
 
-            document.getElementById('uid-tag').innerText = data.uid;
             document.getElementById('result-area').classList.remove('hidden');
             document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
+            
+            setTimeout(() => {
+                document.getElementById('printing-msg').innerText = "QR CODE GERADO!";
+                document.getElementById('printing-msg').classList.remove('animate-pulse');
+            }, 1000);
         };
 
         function resetForm() {
             document.getElementById('qrForm').reset();
             document.getElementById('result-area').classList.add('hidden');
-            document.getElementById('time-container').classList.add('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // Clique fora para fechar listas
         document.addEventListener('click', (e) => {
             if (e.target.id !== 'cliente') document.getElementById('clientes-suggestions').classList.add('hidden');
             if (e.target.id !== 'bairro') document.getElementById('bairros-suggestions').classList.add('hidden');
