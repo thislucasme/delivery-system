@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento - Logística Unaí</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; }
+        .card-shadow { box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05); }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .dot-waiting { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div class="max-w-[1600px] mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="bg-indigo-600 p-2.5 rounded-2xl shadow-lg shadow-indigo-100">
+                    <i data-lucide="layout-dashboard" class="text-white w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black tracking-tight">Logística Unaí</h1>
+                    <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Painel do Gerente</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-2 flex items-center gap-3">
+                    <i data-lucide="calendar" class="w-4 h-4 text-gray-400"></i>
+                    <input type="date" id="data-filtro" class="bg-transparent text-sm font-bold outline-none" onchange="atualizarPainel()">
+                </div>
+                <div id="hoje-badge" class="bg-green-100 text-green-600 text-[10px] font-black px-3 py-1.5 rounded-full uppercase">Hoje</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1600px] mx-auto p-8">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="bg-white p-6 rounded-[2.5rem] border border-gray-100 card-shadow flex items-center justify-between border-l-8 border-l-rose-500">
+                <div>
+                    <p class="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Aguardando Coleta</p>
+                    <h3 class="text-4xl font-black text-rose-500" id="count-espera">3</h3>
+                </div>
+                <div class="p-4 bg-rose-50 rounded-2xl text-rose-500">
+                    <i data-lucide="package-search" class="w-8 h-8"></i>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-[2.5rem] border border-gray-100 card-shadow flex items-center justify-between border-l-8 border-l-amber-500">
+                <div>
+                    <p class="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Em Rota</p>
+                    <h3 class="text-4xl font-black text-amber-500" id="count-andamento">4</h3>
+                </div>
+                <div class="p-4 bg-amber-50 rounded-2xl text-amber-500">
+                    <i data-lucide="truck" class="w-8 h-8"></i>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-[2.5rem] border border-gray-100 card-shadow flex items-center justify-between border-l-8 border-l-green-600">
+                <div>
+                    <p class="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Concluídas</p>
+                    <h3 class="text-4xl font-black text-green-600" id="count-entregues">2</h3>
+                </div>
+                <div class="p-4 bg-green-50 rounded-2xl text-green-600">
+                    <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            
+            <div class="lg:col-span-1">
+                <div class="flex items-center gap-2 mb-6">
+                    <div class="w-2 h-2 rounded-full bg-rose-500 dot-waiting"></div>
+                    <h2 class="font-black text-gray-900 uppercase text-xs tracking-widest">Fila de Saída</h2>
+                </div>
+                
+                <div id="fila-espera" class="space-y-4">
+                    </div>
+            </div>
+
+            <div class="lg:col-span-3">
+                <div class="flex items-center gap-2 mb-6">
+                    <i data-lucide="users" class="w-4 h-4 text-indigo-600"></i>
+                    <h2 class="font-black text-gray-900 uppercase text-xs tracking-widest">Equipe em Campo</h2>
+                </div>
+                <div id="motoristas-grid" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const semMotorista = [
+            { id: 201, cliente: "Supermercado Unaí", bairro: "Politécnica", hora: "14:45", prioridade: "Alta" },
+            { id: 202, cliente: "Loja do Produtor", bairro: "Área Rural", hora: "15:10", prioridade: "Normal" },
+            { id: 203, cliente: "Drogaria Minas", bairro: "Centro", hora: "15:20", prioridade: "Urgente" }
+        ];
+
+        const motoristas = [
+            { id: 1, nome: "Carlos Oliveira", veiculo: "MOTO 01 • ABC-1234", entregas: [
+                { cliente: "Mercado Central", status: "entregue", hora: "10:30", cor: "bg-green-500" },
+                { cliente: "Farmácia Popular", status: "andamento", hora: "14:15", cor: "bg-amber-400" }
+            ]},
+            { id: 3, nome: "Ricardo Santos", veiculo: "VAN ENTREGAS • KJH-4432", entregas: [
+                { cliente: "Hospital Municipal", status: "entregue", hora: "09:00", cor: "bg-green-500" },
+                { cliente: "Supermercado BH", status: "andamento", hora: "16:45", cor: "bg-amber-400" },
+                { cliente: "Escritório Contábil", status: "andamento", hora: "17:00", cor: "bg-amber-400" }
+            ]}
+        ];
+
+        function atualizarPainel() {
+            // Render Fila de Espera
+            const fila = document.getElementById('fila-espera');
+            fila.innerHTML = semMotorista.map(e => `
+                <div class="bg-white p-5 rounded-3xl border border-rose-100 card-shadow border-l-4 border-l-rose-500 group hover:scale-[1.02] transition-transform cursor-pointer">
+                    <div class="flex justify-between items-start mb-2">
+                        <p class="text-sm font-black text-gray-800">${e.cliente}</p>
+                        <span class="text-[9px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md uppercase">${e.prioridade}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase">
+                        <span><i data-lucide="map-pin" class="w-3 h-3 inline mr-1"></i>${e.bairro}</span>
+                        <span>${e.hora}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Render Motoristas
+            const grid = document.getElementById('motoristas-grid');
+            grid.innerHTML = motoristas.map(m => {
+                const pendentes = m.entregas.filter(e => e.status === 'andamento').length;
+                const ok = m.entregas.filter(e => e.status === 'entregue').length;
+
+                return `
+                    <div class="bg-white rounded-[2.5rem] card-shadow border border-gray-100 flex flex-col overflow-hidden">
+                        <div class="p-6 bg-gray-50/50 border-b border-gray-100 flex justify-between items-start">
+                            <div>
+                                <h3 class="font-black text-gray-900">${m.nome}</h3>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase">${m.veiculo}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <span class="bg-amber-100 text-amber-700 text-[9px] font-black px-2 py-1 rounded-lg uppercase">${pendentes} Faltam</span>
+                                <span class="bg-green-100 text-green-700 text-[9px] font-black px-2 py-1 rounded-lg uppercase">${ok} OK</span>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6 space-y-4 flex-1">
+                            ${m.entregas.map(e => `
+                                <div class="flex items-center justify-between border-b border-gray-50 pb-3 last:border-0">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-1.5 h-6 rounded-full ${e.cor}"></div>
+                                        <p class="text-sm font-bold text-gray-800">${e.cliente}</p>
+                                    </div>
+                                    <span class="text-[10px] font-black text-gray-300 uppercase">${e.hora}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Atualiza Contadores
+            document.getElementById('count-espera').innerText = semMotorista.length;
+            
+            lucide.createIcons();
+        }
+
+        window.onload = () => {
+            document.getElementById('data-filtro').value = new Date().toISOString().split('T')[0];
+            atualizarPainel();
+        };
+    </script>
+</body>
+</html>

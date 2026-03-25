@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Gerador QR Unaí - MVP UID</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background: #f9fafb; }
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); }
+        .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        button { touch-action: manipulation; }
+    </style>
+</head>
+<body class="text-gray-900 min-h-screen">
+
+    <div class="max-w-md mx-auto min-h-screen flex flex-col p-6 pb-24">
+        
+        <header class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-2xl font-black text-indigo-600 tracking-tight">QR Generator</h1>
+                <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Sistema de UID v1.0</p>
+            </div>
+            <div class="bg-indigo-100 p-3 rounded-2xl text-indigo-600">
+                <i data-lucide="database" class="w-6 h-6"></i>
+            </div>
+        </header>
+
+        <div class="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-100 mb-6">
+            <form id="qrForm" class="space-y-4">
+                
+                <div class="relative">
+                    <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block tracking-tighter">Nome do Cliente</label>
+                    <input type="text" id="cliente" placeholder="Buscar ou cadastrar novo" 
+                           oninput="filterClientes()" onfocus="showClientes()"
+                           class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" autocomplete="off" required>
+                    <ul id="clientes-suggestions" class="absolute left-0 right-0 mt-2 bg-white border border-gray-100 shadow-2xl rounded-2xl max-h-48 overflow-y-auto z-50 hidden custom-scroll"></ul>
+                </div>
+
+                <div class="space-y-4">
+                    <input type="text" id="rua" placeholder="Rua e Complemento" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
+                    
+                    <div class="grid grid-cols-2 gap-4 relative">
+                        <div class="relative">
+                            <input type="text" id="bairro" placeholder="Bairro" oninput="filterBairros()" onfocus="showBairros()" 
+                                   class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" autocomplete="off" required>
+                            <ul id="bairros-suggestions" class="absolute left-0 right-0 mt-2 bg-white border border-gray-100 shadow-xl rounded-2xl max-h-48 overflow-y-auto z-50 hidden custom-scroll"></ul>
+                        </div>
+                        <input type="text" id="numero" placeholder="Nº" class="p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
+                    </div>
+
+                    <input type="tel" id="telefone" placeholder="WhatsApp (DDD)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
+                </div>
+
+                <button type="submit" class="w-full py-5 bg-indigo-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-indigo-100 active:scale-[0.97] transition-all flex items-center justify-center gap-2 mt-4">
+                    <i data-lucide="qr-code" class="w-5 h-5"></i> GERAR E VINCULAR UID
+                </button>
+            </form>
+        </div>
+
+        <div id="result-area" class="hidden animate-pop flex flex-col items-center pb-10">
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-indigo-50 mb-6 flex flex-col items-center w-full">
+                <div id="qrcode" class="mb-6 p-4 bg-white rounded-2xl border border-gray-50"></div>
+                <div class="text-center">
+                    <p id="uid-display" class="text-xs font-mono text-gray-400 mb-2"></p>
+                    <div id="status-container" class="flex items-center justify-center gap-3">
+                        <div class="w-2 h-2 bg-indigo-600 rounded-full animate-ping"></div>
+                        <p id="printing-msg" class="text-indigo-600 font-black text-sm tracking-tight uppercase">Salvando no Banco...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="resetForm()" class="px-6 py-3 bg-gray-100 text-gray-500 font-bold rounded-2xl text-sm flex items-center gap-2 active:scale-95 transition-all">
+                <i data-lucide="plus" class="w-4 h-4"></i> CADASTRAR OUTRO
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        const bairrosUnai = ["Água Branca","Água Branca II","Águas Claras","Amaral","Área Rural de Unaí","Bela Vista","Boa Vista","Cachoeira","Canabrava","Cangalha","Capim Branco","Centro","Cidade Nova","Cruzeiro","De Lourdes","Divinéia","Dom Bosco","Floresta","Industrial","Iuna","Jacilândia","Kamayura","Laguna","Mamoeiro","Nossa Senhora do Carmo","Nova Canaã","Nova Divinéia","Novo Horizonte","Novo Jardim","Politécnica","Primavera","Riviera Park","Sagarana","Santa Clara","Serenata","Vale Verde","Vila do Sol","Vila Militar"];
+
+        // Mock de banco de dados no LocalStorage
+        let savedClientes = JSON.parse(localStorage.getItem('saved_customers')) || [];
+
+        // Gerador de UID Único para o MVP
+        const generateUID = () => 'UID-' + Math.random().toString(36).substr(2, 7).toUpperCase();
+
+        // --- LÓGICA AUTOCOMPLETE CLIENTE ---
+        function showClientes() {
+            const list = document.getElementById('clientes-suggestions');
+            list.classList.remove('hidden');
+            filterClientes();
+        }
+
+        function filterClientes() {
+            const input = document.getElementById('cliente').value.toLowerCase();
+            const list = document.getElementById('clientes-suggestions');
+            const filtered = savedClientes.filter(c => c.nome.toLowerCase().includes(input));
+            
+            if(filtered.length === 0) {
+                list.classList.add('hidden');
+                return;
+            }
+
+            list.innerHTML = filtered.map(c => `
+                <li onclick="selectCliente('${c.uid}')" class="p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-bold cursor-pointer text-gray-700 flex justify-between items-center active:bg-indigo-100">
+                    <div>
+                        <p class="text-gray-900">${c.nome}</p>
+                        <p class="text-[10px] text-indigo-500 uppercase font-black tracking-tighter">${c.uid} • ${c.bairro}</p>
+                    </div>
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-green-400"></i>
+                </li>
+            `).join('');
+            list.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function selectCliente(uid) {
+            const client = savedClientes.find(c => c.uid === uid);
+            if(client) {
+                document.getElementById('cliente').value = client.nome;
+                document.getElementById('rua').value = client.rua;
+                document.getElementById('bairro').value = client.bairro;
+                document.getElementById('numero').value = client.numero;
+                document.getElementById('telefone').value = client.telefone;
+            }
+            document.getElementById('clientes-suggestions').classList.add('hidden');
+        }
+
+        // --- LÓGICA AUTOCOMPLETE BAIRRO ---
+        function showBairros() {
+            const list = document.getElementById('bairros-suggestions');
+            list.classList.remove('hidden');
+            filterBairros();
+        }
+
+        function filterBairros() {
+            const input = document.getElementById('bairro').value.toLowerCase();
+            const list = document.getElementById('bairros-suggestions');
+            const filtered = bairrosUnai.filter(b => b.toLowerCase().includes(input));
+            
+            list.innerHTML = filtered.map(b => `
+                <li onclick="selectBairro('${b.replace(/'/g, "\\'")}')" class="p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-medium cursor-pointer active:bg-indigo-100 text-gray-700">
+                    ${b}
+                </li>
+            `).join('');
+            
+            if(filtered.length === 0) list.classList.add('hidden');
+        }
+
+        function selectBairro(val) {
+            document.getElementById('bairro').value = val;
+            document.getElementById('bairros-suggestions').classList.add('hidden');
+        }
+
+        // --- SUBMISSÃO E GERAÇÃO DO QR ---
+        document.getElementById('qrForm').onsubmit = (e) => {
+            e.preventDefault();
+            
+            const nomeInput = document.getElementById('cliente').value.trim();
+            
+            // Verifica se o cliente já existe para não duplicar UID
+            let existingClient = savedClientes.find(c => c.nome.toLowerCase() === nomeInput.toLowerCase());
+            
+            const clientData = {
+                uid: existingClient ? existingClient.uid : generateUID(),
+                nome: nomeInput,
+                rua: document.getElementById('rua').value.trim(),
+                bairro: document.getElementById('bairro').value.trim(),
+                numero: document.getElementById('numero').value.trim(),
+                telefone: document.getElementById('telefone').value.trim(),
+                data: new Date().toLocaleDateString('pt-BR')
+            };
+
+            // Salva ou atualiza no LocalStorage
+            if(existingClient) {
+                const index = savedClientes.indexOf(existingClient);
+                savedClientes[index] = clientData;
+            } else {
+                savedClientes.push(clientData);
+            }
+            localStorage.setItem('saved_customers', JSON.stringify(savedClientes));
+
+            // GERA QR CODE APENAS COM O UID
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = "";
+            new QRCode(qrContainer, {
+                text: clientData.uid, // <--- Apenas o UID aqui dentro
+                width: 200,
+                height: 200,
+                colorDark: "#4f46e5",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // UI Updates
+            document.getElementById('uid-display').innerText = `ID VINCULADO: ${clientData.uid}`;
+            document.getElementById('result-area').classList.remove('hidden');
+            document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
+            
+            const msg = document.getElementById('printing-msg');
+            msg.innerText = "Sincronizando Banco...";
+            setTimeout(() => {
+                msg.innerText = "Etiqueta Pronta!";
+                document.querySelector('.animate-ping').classList.add('hidden');
+            }, 1500);
+        };
+
+        function resetForm() {
+            document.getElementById('qrForm').reset();
+            document.getElementById('result-area').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Eventos Globais
+        document.addEventListener('click', (e) => {
+            if (e.target.id !== 'cliente') document.getElementById('clientes-suggestions').classList.add('hidden');
+            if (e.target.id !== 'bairro') document.getElementById('bairros-suggestions').classList.add('hidden');
+        });
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>

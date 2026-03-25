@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Delivery Unaí Pro</title>
+    <title>Gerador QR Unaí Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background: #f9fafb; }
-        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); }
         .animate-fade-in { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         
@@ -18,119 +17,177 @@
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e2e8f0; transition: .4s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: #4f46e5; }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        /* Custom Scrollbar */
-        #bairros-suggestions::-webkit-scrollbar { width: 4px; }
-        #bairros-suggestions::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        
-        /* Melhorias para toque em mobile */
-        button, .cursor-pointer {
-            touch-action: manipulation;
-        }
-        
-        /* Evita que o modal escrole o fundo */
-        body.modal-open {
-            overflow: hidden;
-        }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
     </style>
 </head>
 <body class="text-gray-900 min-h-screen">
 
-    <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col pb-24">
+    <div class="max-w-md mx-auto min-h-screen flex flex-col p-6 pb-24">
         
-        <header class="sticky top-0 z-40 glass border-b border-gray-100 px-4 py-4 flex items-center justify-between">
-            <h1 class="text-xl font-bold tracking-tight text-indigo-600">Entregas Unaí</h1>
-            <div class="flex gap-2 text-gray-600 bg-gray-100 p-1 rounded-xl">
-                <button onclick="changeDate(-1)" class="p-2 hover:bg-white rounded-lg transition-all active:scale-95"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
-                <span id="current-date-display" class="font-bold text-xs flex items-center px-2 min-w-[80px] justify-center uppercase">Hoje</span>
-                <button onclick="changeDate(1)" class="p-2 hover:bg-white rounded-lg transition-all active:scale-95"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+        <header class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-2xl font-black text-indigo-600 tracking-tight">QR Generator</h1>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Entrega & UID Tracking</p>
+            </div>
+            <div class="bg-indigo-100 p-3 rounded-2xl text-indigo-600">
+                <i data-lucide="scan-line" class="w-6 h-6"></i>
             </div>
         </header>
 
-        <main id="main-content" class="flex-1 px-4 py-4"></main>
-
-        <button id="addOrderBtn" class="fixed bottom-6 right-6 w-16 h-16 bg-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-transform z-30 border-4 border-white cursor-pointer">
-            <i data-lucide="plus" class="w-8 h-8"></i>
-        </button>
-
-        <!-- Modal Novo Pedido -->
-        <div id="orderModal" class="fixed inset-0 z-50 hidden" style="touch-action: pan-y;">
-            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeModal('orderModal')"></div>
-            <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 shadow-2xl overflow-y-auto max-h-[92vh] animate-fade-in">
-                <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8"></div>
-                
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-black text-gray-800">Novo Pedido</h2>
-                    <button id="qrScanBtn" class="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-2xl font-bold text-sm active:scale-95 transition-all">
-                        <i data-lucide="qr-code" class="w-4 h-4"></i> QR Scan
-                    </button>
-                </div>
-
-                <div id="reader" class="hidden mb-6 rounded-3xl overflow-hidden border-4 border-indigo-100"></div>
-                
-                <form id="orderForm" class="space-y-4 pb-10">
-                    <input type="text" id="cliente" placeholder="Nome do Cliente" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium" required>
-                    
-                    <input type="text" id="rua" placeholder="Rua e Complemento" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
-
-                    <div class="grid grid-cols-2 gap-4 relative">
-                        <div class="relative">
-                            <input type="text" id="bairro" placeholder="Bairro" oninput="filterBairros()" onfocus="showBairros()" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" autocomplete="off" required>
-                            <ul id="bairros-suggestions" class="absolute left-0 right-0 mt-2 bg-white border border-gray-100 shadow-xl rounded-2xl max-h-48 overflow-y-auto z-50 hidden"></ul>
-                        </div>
-                        <input type="text" id="numero" placeholder="Nº" class="p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
-                    </div>
-
-                    <input type="tel" id="telefone" placeholder="Telefone (WhatsApp)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
-
-                    <div class="flex items-center justify-between p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
-                        <div class="flex items-center gap-2 text-indigo-900 font-semibold">
-                            <i data-lucide="clock" class="w-4 h-4"></i>
-                            <span class="text-sm">Agendar horário?</span>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="toggle-horario" onchange="toggleTimeInput()">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div id="time-container" class="hidden space-y-2 animate-fade-in">
-                        <input type="datetime-local" id="horario" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
-                    </div>
-                    
-                    <button type="submit" class="w-full py-5 bg-indigo-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-indigo-200 active:scale-[0.97] transition-all">CRIAR PEDIDO</button>
-                </form>
+        <div class="mb-6 p-4 bg-indigo-600 rounded-3xl shadow-lg shadow-indigo-200">
+            <div class="flex items-center justify-between text-white mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider opacity-80">Leitor (Mock MVP)</span>
+                <i data-lucide="camera" class="w-4 h-4"></i>
             </div>
+            <button onclick="simulateScan()" class="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-white font-bold text-sm transition-all flex items-center justify-center gap-2">
+                <i data-lucide="qr-code" class="w-4 h-4"></i> SIMULAR LEITURA DE UID
+            </button>
         </div>
 
-        <!-- Modal Assinatura -->
-        <div id="signatureModal" class="fixed inset-0 z-50 hidden">
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal('signatureModal')"></div>
-            <div class="absolute inset-y-0 inset-x-0 m-auto w-[92%] h-fit bg-white rounded-[2.5rem] p-8 shadow-2xl">
-                <h2 class="text-xl font-black mb-2 text-center text-gray-800">Assinatura Final</h2>
-                <p class="text-sm text-gray-500 text-center mb-6">Opcional para o cliente</p>
-                <canvas id="signature-pad" class="w-full h-56 bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl mb-6 touch-none" style="touch-action: none;"></canvas>
-                <div class="flex gap-4">
-                    <button onclick="closeModal('signatureModal')" class="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-bold active:scale-95 transition-all">PULAR</button>
-                    <button id="saveSignature" class="flex-1 py-4 bg-green-600 text-white rounded-2xl font-bold shadow-lg shadow-green-100 active:scale-95 transition-all">FINALIZAR</button>
+        <div class="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-100 mb-6">
+            <form id="qrForm" class="space-y-4">
+                
+                <div class="relative">
+                    <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block">Cliente</label>
+                    <input type="text" id="cliente" placeholder="Nome do Cliente" 
+                           oninput="filterClientes()" onfocus="showClientes()"
+                           class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" autocomplete="off" required>
+                    <ul id="clientes-suggestions" class="absolute left-0 right-0 mt-2 bg-white border border-gray-100 shadow-2xl rounded-2xl max-h-48 overflow-y-auto z-50 hidden custom-scroll"></ul>
                 </div>
-            </div>
+
+                <input type="text" id="rua" placeholder="Rua e Complemento" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="relative">
+                        <input type="text" id="bairro" placeholder="Bairro" oninput="filterBairros()" onfocus="showBairros()" 
+                               class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" autocomplete="off" required>
+                        <ul id="bairros-suggestions" class="absolute left-0 right-0 mt-2 bg-white border border-gray-100 shadow-xl rounded-2xl max-h-48 overflow-y-auto z-50 hidden custom-scroll"></ul>
+                    </div>
+                    <input type="text" id="numero" placeholder="Nº" class="p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
+                </div>
+
+                <input type="tel" id="telefone" placeholder="Telefone (WhatsApp)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
+
+                <div class="flex items-center justify-between p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
+                    <div class="flex items-center gap-2 text-indigo-900 font-semibold">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                        <span class="text-sm">Agendar horário?</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-horario" onchange="toggleTimeInput()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div id="time-container" class="hidden animate-fade-in">
+                    <input type="datetime-local" id="horario" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                </div>
+
+                <button type="submit" class="w-full py-5 bg-indigo-600 text-white font-black text-lg rounded-2xl shadow-xl active:scale-[0.97] transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="plus-circle" class="w-5 h-5"></i> SALVAR E GERAR UID
+                </button>
+            </form>
         </div>
+
+        <div id="result-area" class="hidden animate-fade-in flex flex-col items-center">
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-indigo-50 mb-6 flex flex-col items-center w-full text-center">
+                <canvas id="qrcode-canvas" class="mb-4"></canvas>
+                <div id="uid-tag" class="px-4 py-1 bg-gray-100 rounded-full text-[10px] font-mono font-bold text-gray-500 mb-4"></div>
+                <p id="printing-msg" class="text-indigo-600 font-black text-sm uppercase">Etiqueta Pronta!</p>
+            </div>
+            
+            <button onclick="resetForm()" class="px-6 py-4 bg-gray-100 text-gray-500 font-bold rounded-2xl text-sm flex items-center gap-2">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> LIMPAR TELA
+            </button>
+        </div>
+
     </div>
 
     <script>
-        // Dados
         const bairrosUnai = ["Água Branca","Água Branca II","Águas Claras","Amaral","Área Rural de Unaí","Bela Vista","Boa Vista","Cachoeira","Canabrava","Cangalha","Capim Branco","Centro","Cidade Nova","Cruzeiro","De Lourdes","Divinéia","Dom Bosco","Floresta","Industrial","Iuna","Jacilândia","Kamayura","Laguna","Mamoeiro","Nossa Senhora do Carmo","Nova Canaã","Nova Divinéia","Novo Horizonte","Novo Jardim","Politécnica","Primavera","Riviera Park","Sagarana","Santa Clara","Serenata","Vale Verde","Vila do Sol","Vila Militar"];
 
-        let orders = JSON.parse(localStorage.getItem('delivery_orders')) || [];
-        let viewDate = new Date();
-        let currentOrderIndex = null;
-        let html5QrCode = null;
-        
-        // --- Funções Globais ---
+        let savedClientes = JSON.parse(localStorage.getItem('saved_customers')) || [];
+
+        // Gerador de UID
+        const generateUID = () => 'UID-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+
+        function toggleTimeInput() {
+            const container = document.getElementById('time-container');
+            container.classList.toggle('hidden', !document.getElementById('toggle-horario').checked);
+        }
+
+        // Simulação de Leitura (Mock)
+        function simulateScan() {
+            if (savedClientes.length === 0) {
+                alert("Nenhum cliente no banco de dados para simular leitura.");
+                return;
+            }
+            
+            // Pega um UID aleatório do seu banco local para simular que escaneou um físico
+            const randomClient = savedClientes[Math.floor(Math.random() * savedClientes.length)];
+            const scannedUID = randomClient.uid;
+
+            alert("QR Code Escaneado com Sucesso! ID: " + scannedUID);
+            
+            // Lógica de preenchimento após "leitura"
+            const client = savedClientes.find(c => c.uid === scannedUID);
+            if(client) {
+                document.getElementById('cliente').value = client.nome;
+                document.getElementById('rua').value = client.rua;
+                document.getElementById('bairro').value = client.bairro;
+                document.getElementById('numero').value = client.numero;
+                document.getElementById('telefone').value = client.telefone;
+                
+                // Feedback visual de sucesso
+                const header = document.querySelector('header');
+                header.classList.add('animate-pulse');
+                setTimeout(() => header.classList.remove('animate-pulse'), 1000);
+            }
+        }
+
+        // Sugestões de Clientes
+        function showClientes() {
+            const list = document.getElementById('clientes-suggestions');
+            list.classList.remove('hidden');
+            filterClientes();
+        }
+
+        function filterClientes() {
+            const input = document.getElementById('cliente').value.toLowerCase();
+            const list = document.getElementById('clientes-suggestions');
+            const filtered = savedClientes.filter(c => c.nome.toLowerCase().includes(input));
+            
+            if(filtered.length === 0) { list.classList.add('hidden'); return; }
+
+            list.innerHTML = filtered.map(c => `
+                <li onclick="fillByUID('${c.uid}')" class="p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-bold cursor-pointer flex justify-between items-center active:bg-indigo-100">
+                    <div>
+                        <p class="text-gray-900">${c.nome}</p>
+                        <p class="text-[10px] text-indigo-500 uppercase font-black">${c.uid} • ${c.bairro}</p>
+                    </div>
+                </li>
+            `).join('');
+            list.classList.remove('hidden');
+        }
+
+        function fillByUID(uid) {
+            const client = savedClientes.find(c => c.uid === uid);
+            if(client) {
+                document.getElementById('cliente').value = client.nome;
+                document.getElementById('rua').value = client.rua;
+                document.getElementById('bairro').value = client.bairro;
+                document.getElementById('numero').value = client.numero;
+                document.getElementById('telefone').value = client.telefone;
+            }
+            document.getElementById('clientes-suggestions').classList.add('hidden');
+        }
+
+        // Sugestões de Bairros
         function showBairros() {
             const list = document.getElementById('bairros-suggestions');
             list.classList.remove('hidden');
@@ -141,13 +198,7 @@
             const input = document.getElementById('bairro').value.toLowerCase();
             const list = document.getElementById('bairros-suggestions');
             const filtered = bairrosUnai.filter(b => b.toLowerCase().includes(input));
-            
-            list.innerHTML = filtered.map(b => `
-                <li onclick="selectBairro('${b.replace(/'/g, "\\'")}')" class="p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-medium cursor-pointer active:bg-indigo-100 text-gray-700">
-                    ${b}
-                </li>
-            `).join('');
-            
+            list.innerHTML = filtered.map(b => `<li onclick="selectBairro('${b}')" class="p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-medium cursor-pointer active:bg-indigo-100">${b}</li>`).join('');
             if(filtered.length === 0) list.classList.add('hidden');
         }
 
@@ -156,288 +207,63 @@
             document.getElementById('bairros-suggestions').classList.add('hidden');
         }
 
+        // GERAR E SALVAR
+        document.getElementById('qrForm').onsubmit = (e) => {
+            e.preventDefault();
+            
+            const nomeInput = document.getElementById('cliente').value.trim();
+            let existingClient = savedClientes.find(c => c.nome.toLowerCase() === nomeInput.toLowerCase());
+
+            const data = {
+                uid: existingClient ? existingClient.uid : generateUID(),
+                nome: nomeInput,
+                rua: document.getElementById('rua').value.trim(),
+                bairro: document.getElementById('bairro').value.trim(),
+                numero: document.getElementById('numero').value.trim(),
+                telefone: document.getElementById('telefone').value.trim(),
+                horario: document.getElementById('toggle-horario').checked ? document.getElementById('horario').value : null
+            };
+
+            // Salva ou Atualiza
+            if(existingClient) {
+                const idx = savedClientes.indexOf(existingClient);
+                savedClientes[idx] = data;
+            } else {
+                savedClientes.push(data);
+            }
+            localStorage.setItem('saved_customers', JSON.stringify(savedClientes));
+
+            // GERA O QR CODE COM O UID
+            new QRious({
+                element: document.getElementById('qrcode-canvas'),
+                value: data.uid,
+                size: 200,
+                foreground: '#4f46e5',
+                level: 'M'
+            });
+
+            document.getElementById('uid-tag').innerText = data.uid;
+            document.getElementById('result-area').classList.remove('hidden');
+            document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        function resetForm() {
+            document.getElementById('qrForm').reset();
+            document.getElementById('result-area').classList.add('hidden');
+            document.getElementById('time-container').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
         document.addEventListener('click', (e) => {
+            if (e.target.id !== 'cliente') document.getElementById('clientes-suggestions').classList.add('hidden');
             if (e.target.id !== 'bairro') document.getElementById('bairros-suggestions').classList.add('hidden');
         });
 
-        function toggleTimeInput() {
-            const container = document.getElementById('time-container');
-            const isChecked = document.getElementById('toggle-horario').checked;
-            container.classList.toggle('hidden', !isChecked);
-        }
-
-        async function startQRScanner() {
-            const readerDiv = document.getElementById('reader');
-            readerDiv.classList.remove('hidden');
-            try {
-                if (html5QrCode) {
-                    await html5QrCode.stop();
-                }
-                html5QrCode = new Html5Qrcode("reader");
-                await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
-                    try {
-                        const data = JSON.parse(decodedText);
-                        document.getElementById('cliente').value = data.nome || '';
-                        document.getElementById('rua').value = data.rua || '';
-                        document.getElementById('bairro').value = data.bairro || '';
-                        document.getElementById('numero').value = data.numero || '';
-                        document.getElementById('telefone').value = data.telefone || '';
-                        stopScanner();
-                    } catch (e) { 
-                        alert("QR Inválido"); 
-                        stopScanner();
-                    }
-                });
-            } catch (err) { 
-                alert("Erro ao acessar a câmera. Verifique as permissões.");
-                readerDiv.classList.add('hidden');
-            }
-        }
-
-        function stopScanner() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    document.getElementById('reader').classList.add('hidden');
-                    html5QrCode = null;
-                }).catch(() => {});
-            } else {
-                document.getElementById('reader').classList.add('hidden');
-            }
-        }
-
-        function renderOrders() {
-            const main = document.getElementById('main-content');
-            const dateStr = viewDate.toLocaleDateString('pt-BR');
-            const todayStr = new Date().toLocaleDateString('pt-BR');
-            document.getElementById('current-date-display').innerText = dateStr === todayStr ? "Hoje" : dateStr;
-
-            const filtered = orders.filter(o => new Date(o.dataView).toLocaleDateString('pt-BR') === dateStr);
-
-            if(filtered.length === 0) {
-                main.innerHTML = `<div class="flex flex-col items-center justify-center h-80 text-gray-300"><i data-lucide="box" class="w-16 h-16 mb-4 opacity-20"></i><p class="font-bold">Nenhuma entrega agendada</p></div>`;
-            } else {
-                main.innerHTML = filtered.map((o, idx) => {
-                    const originalIndex = orders.findIndex(order => order === o);
-                    return `
-                    <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 mb-4 animate-fade-in relative overflow-hidden">
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="flex-1">
-                                <h3 class="font-black text-gray-800 text-lg leading-tight mb-1">${escapeHtml(o.cliente)}</h3>
-                                <div class="flex items-center gap-2 text-indigo-500 font-bold text-[10px] uppercase tracking-widest">
-                                    <i data-lucide="clock" class="w-3 h-3"></i>
-                                    ${o.horario ? new Date(o.horario).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Entrega Flexível'}
-                                </div>
-                            </div>
-                            <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider ${o.status === 'Pendente' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}">
-                                ${o.status}
-                            </span>
-                        </div>
-                        <div class="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-100/50">
-                            <p class="text-xs text-gray-400 font-bold uppercase mb-1 tracking-tighter">Endereço</p>
-                            <p class="text-sm text-gray-700 leading-snug">
-                                <span class="font-medium">${escapeHtml(o.rua)}, ${escapeHtml(o.numero)}</span><br>
-                                <span class="text-indigo-600 font-bold">${escapeHtml(o.bairro)}</span>
-                            </p>
-                        </div>
-                        ${o.status === 'Pendente' ? `<button onclick="startFinishOrder(${originalIndex})" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 active:scale-95 transition-all">FINALIZAR ENTREGA</button>` : `<div class="flex items-center text-green-600 text-xs font-black uppercase"><i data-lucide="verified" class="w-4 h-4 mr-1"></i> Concluído</div>`}
-                    </div>
-                `}).join('');
-            }
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-
-        document.getElementById('orderForm').onsubmit = (e) => {
-            e.preventDefault();
-            const cliente = document.getElementById('cliente').value.trim();
-            const rua = document.getElementById('rua').value.trim();
-            const bairro = document.getElementById('bairro').value.trim();
-            const numero = document.getElementById('numero').value.trim();
-            const telefone = document.getElementById('telefone').value.trim();
-            
-            if (!cliente || !rua || !bairro || !numero || !telefone) {
-                alert("Preencha todos os campos obrigatórios!");
-                return;
-            }
-            
-            orders.push({
-                cliente: cliente,
-                rua: rua,
-                bairro: bairro,
-                numero: numero,
-                telefone: telefone,
-                horario: document.getElementById('toggle-horario').checked ? document.getElementById('horario').value : null,
-                dataView: viewDate.toISOString(),
-                status: 'Pendente'
-            });
-            localStorage.setItem('delivery_orders', JSON.stringify(orders));
-            closeModal('orderModal');
-            renderOrders();
-            e.target.reset();
-            document.getElementById('time-container').classList.add('hidden');
-            document.getElementById('toggle-horario').checked = false;
-        };
-
-        function changeDate(days) { 
-            viewDate.setDate(viewDate.getDate() + days); 
-            renderOrders(); 
-        }
-        
-        function openModal(id) { 
-            const modal = document.getElementById(id);
-            if (modal) {
-                modal.classList.remove('hidden');
-                document.body.classList.add('modal-open');
-                if (id === 'signatureModal') {
-                    setTimeout(() => resizeCanvas(), 100);
-                }
-            }
-        }
-        
-        function closeModal(id) { 
-            const modal = document.getElementById(id);
-            if (modal) {
-                modal.classList.add('hidden');
-                document.body.classList.remove('modal-open');
-                if (id === 'orderModal') stopScanner();
-            }
-        }
-
-        // --- Assinatura ---
-        let canvas, ctx, drawing = false;
-        
-        function resizeCanvas() {
-            canvas = document.getElementById('signature-pad');
-            if (!canvas) return;
-            ctx = canvas.getContext('2d');
-            const rect = canvas.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-            ctx.strokeStyle = "#4f46e5";
-            ctx.lineWidth = 4;
-            ctx.lineCap = "round";
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-        
-        function getCanvasCoords(e) {
-            const rect = canvas.getBoundingClientRect();
-            let clientX, clientY;
-            if (e.touches) {
-                clientX = e.touches[0].clientX;
-                clientY = e.touches[0].clientY;
-            } else {
-                clientX = e.clientX;
-                clientY = e.clientY;
-            }
-            const x = clientX - rect.left;
-            const y = clientY - rect.top;
-            return { x: Math.max(0, Math.min(canvas.width, x)), y: Math.max(0, Math.min(canvas.height, y)) };
-        }
-        
-        function startDrawing(e) {
-            drawing = true;
-            const pos = getCanvasCoords(e);
-            ctx.beginPath();
-            ctx.moveTo(pos.x, pos.y);
-            e.preventDefault();
-        }
-        
-        function draw(e) {
-            if (!drawing) return;
-            const pos = getCanvasCoords(e);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.stroke();
-            e.preventDefault();
-        }
-        
-        function stopDrawing() {
-            drawing = false;
-        }
-        
-        function startFinishOrder(idx) {
-            currentOrderIndex = idx;
-            openModal('signatureModal');
-            resizeCanvas();
-            if (canvas) {
-                canvas.addEventListener('touchstart', startDrawing);
-                canvas.addEventListener('touchmove', draw);
-                canvas.addEventListener('touchend', stopDrawing);
-                canvas.addEventListener('mousedown', startDrawing);
-                canvas.addEventListener('mousemove', draw);
-                canvas.addEventListener('mouseup', stopDrawing);
-            }
-        }
-        
-        document.getElementById('saveSignature').onclick = () => {
-            if (currentOrderIndex !== null) {
-                orders[currentOrderIndex].status = 'Finalizado';
-                localStorage.setItem('delivery_orders', JSON.stringify(orders));
-                closeModal('signatureModal');
-                renderOrders();
-                if (canvas) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    canvas.removeEventListener('touchstart', startDrawing);
-                    canvas.removeEventListener('touchmove', draw);
-                    canvas.removeEventListener('touchend', stopDrawing);
-                    canvas.removeEventListener('mousedown', startDrawing);
-                    canvas.removeEventListener('mousemove', draw);
-                    canvas.removeEventListener('mouseup', stopDrawing);
-                }
-            }
-        };
-
-        // Inicialização e eventos para mobile
-        window.onload = () => { 
-            renderOrders(); 
+        window.onload = () => {
+            lucide.createIcons();
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            const datetimeLocal = now.toISOString().slice(0, 16);
-            document.getElementById('horario').value = datetimeLocal;
-            
-            // Garantir que o botão de adicionar funcione no celular
-            const addBtn = document.getElementById('addOrderBtn');
-            if (addBtn) {
-                addBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    openModal('orderModal');
-                });
-                addBtn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    openModal('orderModal');
-                });
-            }
-            
-            const qrBtn = document.getElementById('qrScanBtn');
-            if (qrBtn) {
-                qrBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    startQRScanner();
-                });
-                qrBtn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    startQRScanner();
-                });
-            }
-            
-            // Prevenir scroll do fundo quando modal aberto
-            const modals = ['orderModal', 'signatureModal'];
-            modals.forEach(id => {
-                const modal = document.getElementById(id);
-                if (modal) {
-                    modal.addEventListener('touchmove', (e) => {
-                        if (e.target === modal || e.target === modal.firstChild) e.preventDefault();
-                    }, { passive: false });
-                }
-            });
+            document.getElementById('horario').value = now.toISOString().slice(0, 16);
         };
     </script>
 </body>
