@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Delivery Unaí Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); }
+        .animate-fade-in { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Switch */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e2e8f0; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        input:checked + .slider { background-color: #4f46e5; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Custom Scrollbar */
+        #bairros-suggestions::-webkit-scrollbar { width: 4px; }
+        #bairros-suggestions::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+
+    <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col pb-24">
+        
+        <header class="sticky top-0 z-40 glass border-b border-gray-100 px-4 py-4 flex items-center justify-between">
+            <h1 class="text-xl font-bold tracking-tight text-indigo-600">Entregas Unaí</h1>
+            <div class="flex gap-2 text-gray-600 bg-gray-100 p-1 rounded-xl">
+                <button onclick="changeDate(-1)" class="p-2 hover:bg-white rounded-lg transition-all"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                <span id="current-date-display" class="font-bold text-xs flex items-center px-2 min-w-[80px] justify-center uppercase">Hoje</span>
+                <button onclick="changeDate(1)" class="p-2 hover:bg-white rounded-lg transition-all"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+            </div>
+        </header>
+
+        <main id="main-content" class="flex-1 px-4 py-4"></main>
+
+        <button onclick="openModal('orderModal')" class="fixed bottom-6 right-6 w-16 h-16 bg-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-transform z-30 border-4 border-white">
+            <i data-lucide="plus" class="w-8 h-8"></i>
+        </button>
+
+        <div id="orderModal" class="fixed inset-0 z-50 hidden">
+            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeModal('orderModal')"></div>
+            <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 shadow-2xl overflow-y-auto max-h-[92vh] animate-fade-in">
+                <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8"></div>
+                
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-black text-gray-800">Novo Pedido</h2>
+                    <button onclick="startQRScanner()" class="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-2xl font-bold text-sm">
+                        <i data-lucide="qr-code" class="w-4 h-4"></i> QR Scan
+                    </button>
+                </div>
+
+                <div id="reader" class="hidden mb-6 rounded-3xl overflow-hidden border-4 border-indigo-100"></div>
+                
+                <form id="orderForm" class="space-y-4 pb-10">
+                    <input type="text" id="cliente" placeholder="Nome do Cliente" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium" required>
+                    
+                    <input type="text" id="rua" placeholder="Rua e Complemento" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
+
+                    <div class="grid grid-cols-2 gap-4 relative">
+                        <div class="relative">
+                            <input type="text" id="bairro" placeholder="Bairro" oninput="filterBairros()" onfocus="showBairros()" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" autocomplete="off" required>
+                            <ul id="bairros-suggestions" class="absolute left-0 right-0 mt-2 bg-white border border-gray-100 shadow-xl rounded-2xl max-h-48 overflow-y-auto z-50 hidden"></ul>
+                        </div>
+                        <input type="text" id="numero" placeholder="Nº" class="p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
+                    </div>
+
+                    <input type="tel" id="telefone" placeholder="Telefone (WhatsApp)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
+
+                    <div class="flex items-center justify-between p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
+                        <div class="flex items-center gap-2 text-indigo-900 font-semibold">
+                            <i data-lucide="clock" class="w-4 h-4"></i>
+                            <span class="text-sm">Agendar horário?</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-horario" onchange="toggleTimeInput()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div id="time-container" class="hidden space-y-2 animate-fade-in">
+                        <input type="datetime-local" id="horario" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                    </div>
+                    
+                    <button type="submit" class="w-full py-5 bg-indigo-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-indigo-200 active:scale-[0.97] transition-all">CRIAR PEDIDO</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="signatureModal" class="fixed inset-0 z-50 hidden">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+            <div class="absolute inset-y-0 inset-x-0 m-auto w-[92%] h-fit bg-white rounded-[2.5rem] p-8 shadow-2xl">
+                <h2 class="text-xl font-black mb-2 text-center text-gray-800">Assinatura Final</h2>
+                <p class="text-sm text-gray-500 text-center mb-6">Opcional para o cliente</p>
+                <canvas id="signature-pad" class="w-full h-56 bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl mb-6 touch-none"></canvas>
+                <div class="flex gap-4">
+                    <button onclick="closeModal('signatureModal')" class="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-bold">PULAR</button>
+                    <button id="saveSignature" class="flex-1 py-4 bg-green-600 text-white rounded-2xl font-bold shadow-lg shadow-green-100">FINALIZAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const bairrosUnai = ["Água Branca","Água Branca II","Águas Claras","Amaral","Área Rural de Unaí","Bela Vista","Boa Vista","Cachoeira","Canabrava","Cangalha","Capim Branco","Centro","Cidade Nova","Cruzeiro","De Lourdes","Divinéia","Dom Bosco","Floresta","Industrial","Iuna","Jacilândia","Kamayura","Laguna","Mamoeiro","Nossa Senhora do Carmo","Nova Canaã","Nova Divinéia","Novo Horizonte","Novo Jardim","Politécnica","Primavera","Riviera Park","Sagarana","Santa Clara","Serenata","Vale Verde","Vila do Sol","Vila Militar"];
+
+        let orders = JSON.parse(localStorage.getItem('delivery_orders')) || [];
+        let viewDate = new Date();
+        let currentOrderIndex = null;
+        let html5QrCode;
+
+        // --- AUTOCOMPLETE LOGIC ---
+        function showBairros() {
+            const list = document.getElementById('bairros-suggestions');
+            list.classList.remove('hidden');
+            filterBairros();
+        }
+
+        function filterBairros() {
+            const input = document.getElementById('bairro').value.toLowerCase();
+            const list = document.getElementById('bairros-suggestions');
+            const filtered = bairrosUnai.filter(b => b.toLowerCase().includes(input));
+            
+            list.innerHTML = filtered.map(b => `
+                <li onclick="selectBairro('${b}')" class="p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-medium cursor-pointer active:bg-indigo-100 text-gray-700">
+                    ${b}
+                </li>
+            `).join('');
+            
+            if(filtered.length === 0) list.classList.add('hidden');
+        }
+
+        function selectBairro(val) {
+            document.getElementById('bairro').value = val;
+            document.getElementById('bairros-suggestions').classList.add('hidden');
+        }
+
+        // Fecha a lista se clicar fora
+        document.addEventListener('click', (e) => {
+            if (e.target.id !== 'bairro') document.getElementById('bairros-suggestions').classList.add('hidden');
+        });
+
+        function toggleTimeInput() {
+            const container = document.getElementById('time-container');
+            const isChecked = document.getElementById('toggle-horario').checked;
+            container.classList.toggle('hidden', !isChecked);
+        }
+
+        async function startQRScanner() {
+            const readerDiv = document.getElementById('reader');
+            readerDiv.classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            try {
+                await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
+                    try {
+                        const data = JSON.parse(decodedText);
+                        document.getElementById('cliente').value = data.nome || '';
+                        document.getElementById('rua').value = data.rua || '';
+                        document.getElementById('bairro').value = data.bairro || '';
+                        document.getElementById('numero').value = data.numero || '';
+                        document.getElementById('telefone').value = data.telefone || '';
+                        stopScanner();
+                    } catch (e) { alert("QR Inválido"); stopScanner(); }
+                });
+            } catch (err) { alert("Câmera erro: " + err); }
+        }
+
+        function stopScanner() {
+            if (html5QrCode) html5QrCode.stop().then(() => document.getElementById('reader').classList.add('hidden'));
+        }
+
+        function renderOrders() {
+            const main = document.getElementById('main-content');
+            const dateStr = viewDate.toLocaleDateString('pt-BR');
+            document.getElementById('current-date-display').innerText = dateStr === new Date().toLocaleDateString('pt-BR') ? "Hoje" : dateStr;
+
+            const filtered = orders.filter(o => new Date(o.dataView).toLocaleDateString('pt-BR') === dateStr);
+
+            if(filtered.length === 0) {
+                main.innerHTML = `<div class="flex flex-col items-center justify-center h-80 text-gray-300"><i data-lucide="box" class="w-16 h-16 mb-4 opacity-20"></i><p class="font-bold">Nenhuma entrega agendada</p></div>`;
+            } else {
+                main.innerHTML = filtered.map((o) => `
+                    <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 mb-4 animate-fade-in relative overflow-hidden">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex-1">
+                                <h3 class="font-black text-gray-800 text-lg leading-tight mb-1">${o.cliente}</h3>
+                                <div class="flex items-center gap-2 text-indigo-500 font-bold text-[10px] uppercase tracking-widest">
+                                    <i data-lucide="clock" class="w-3 h-3"></i>
+                                    ${o.horario ? new Date(o.horario).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Entrega Flexível'}
+                                </div>
+                            </div>
+                            <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider ${o.status === 'Pendente' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}">
+                                ${o.status}
+                            </span>
+                        </div>
+                        <div class="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-100/50">
+                            <p class="text-xs text-gray-400 font-bold uppercase mb-1 tracking-tighter">Endereço</p>
+                            <p class="text-sm text-gray-700 leading-snug">
+                                <span class="font-medium">${o.rua}, ${o.numero}</span><br>
+                                <span class="text-indigo-600 font-bold">${o.bairro}</span>
+                            </p>
+                        </div>
+                        ${o.status === 'Pendente' ? `<button onclick="startFinishOrder(${orders.indexOf(o)})" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 active:scale-95 transition-all">FINALIZAR ENTREGA</button>` : `<div class="flex items-center text-green-600 text-xs font-black uppercase"><i data-lucide="verified" class="w-4 h-4 mr-1"></i> Concluído</div>`}
+                    </div>
+                `).join('');
+            }
+            lucide.createIcons();
+        }
+
+        document.getElementById('orderForm').onsubmit = (e) => {
+            e.preventDefault();
+            orders.push({
+                cliente: document.getElementById('cliente').value,
+                rua: document.getElementById('rua').value,
+                bairro: document.getElementById('bairro').value,
+                numero: document.getElementById('numero').value,
+                telefone: document.getElementById('telefone').value,
+                horario: document.getElementById('toggle-horario').checked ? document.getElementById('horario').value : null,
+                dataView: viewDate.toISOString(),
+                status: 'Pendente'
+            });
+            localStorage.setItem('delivery_orders', JSON.stringify(orders));
+            closeModal('orderModal');
+            renderOrders();
+            e.target.reset();
+            document.getElementById('time-container').classList.add('hidden');
+        };
+
+        function changeDate(days) { viewDate.setDate(viewDate.getDate() + days); renderOrders(); }
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); if(id === 'orderModal') stopScanner(); }
+
+        // --- SIGNATURE PAD ---
+        const canvas = document.getElementById('signature-pad');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        function startFinishOrder(idx) {
+            currentOrderIndex = idx;
+            openModal('signatureModal');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            ctx.strokeStyle = "#4f46e5";
+            ctx.lineWidth = 4;
+            ctx.lineCap = "round";
+        }
+
+        const getPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        };
+
+        canvas.onmousedown = canvas.ontouchstart = (e) => { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); };
+        window.onmouseup = window.ontouchend = () => drawing = false;
+        canvas.onmousemove = canvas.ontouchmove = (e) => { if(!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+
+        document.getElementById('saveSignature').onclick = () => {
+            orders[currentOrderIndex].status = 'Finalizado';
+            localStorage.setItem('delivery_orders', JSON.stringify(orders));
+            closeModal('signatureModal');
+            renderOrders();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        };
+
+        window.onload = () => { 
+            renderOrders(); 
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('horario').value = now.toISOString().slice(0, 16);
+        };
+    </script>
+</body>
+</html>
