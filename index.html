@@ -8,13 +8,12 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background: #f9fafb; }
         .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); }
         .animate-fade-in { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Switch */
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e2e8f0; transition: .4s; border-radius: 24px; }
@@ -22,19 +21,11 @@
         input:checked + .slider { background-color: #4f46e5; }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        /* Custom Scrollbar */
         #bairros-suggestions::-webkit-scrollbar { width: 4px; }
         #bairros-suggestions::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
         
-        /* Melhorias para toque em mobile */
-        button, .cursor-pointer {
-            touch-action: manipulation;
-        }
-        
-        /* Evita que o modal escrole o fundo */
-        body.modal-open {
-            overflow: hidden;
-        }
+        button, .cursor-pointer { touch-action: manipulation; }
+        body.modal-open { overflow: hidden; }
     </style>
 </head>
 <body class="text-gray-900 min-h-screen">
@@ -42,37 +33,39 @@
     <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col pb-24">
         
         <header class="sticky top-0 z-40 glass border-b border-gray-100 px-4 py-4 flex items-center justify-between">
-            <h1 class="text-xl font-bold tracking-tight text-indigo-600">Entregas Unaí</h1>
+            <h1 class="text-xl font-black tracking-tight text-indigo-600">Entregas Unaí</h1>
             <div class="flex gap-2 text-gray-600 bg-gray-100 p-1 rounded-xl">
                 <button onclick="changeDate(-1)" class="p-2 hover:bg-white rounded-lg transition-all active:scale-95"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
-                <span id="current-date-display" class="font-bold text-xs flex items-center px-2 min-w-[80px] justify-center uppercase">Hoje</span>
+                <span id="current-date-display" class="font-bold text-[10px] flex items-center px-2 min-w-[80px] justify-center uppercase">Hoje</span>
                 <button onclick="changeDate(1)" class="p-2 hover:bg-white rounded-lg transition-all active:scale-95"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
             </div>
         </header>
 
         <main id="main-content" class="flex-1 px-4 py-4"></main>
 
-        <button id="addOrderBtn" class="fixed bottom-6 right-6 w-16 h-16 bg-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-transform z-30 border-4 border-white cursor-pointer">
+        <button id="addOrderBtn" onclick="openModal('orderModal')" class="fixed bottom-6 right-6 w-16 h-16 bg-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-transform z-30 border-4 border-white">
             <i data-lucide="plus" class="w-8 h-8"></i>
         </button>
 
-        <!-- Modal Novo Pedido -->
-        <div id="orderModal" class="fixed inset-0 z-50 hidden" style="touch-action: pan-y;">
+        <div id="orderModal" class="fixed inset-0 z-50 hidden">
             <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeModal('orderModal')"></div>
             <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-6 shadow-2xl overflow-y-auto max-h-[92vh] animate-fade-in">
                 <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8"></div>
                 
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-black text-gray-800">Novo Pedido</h2>
-                    <button id="qrScanBtn" class="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-2xl font-bold text-sm active:scale-95 transition-all">
-                        <i data-lucide="qr-code" class="w-4 h-4"></i> QR Scan
+                    <button onclick="startQRScanner()" class="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-2xl font-bold text-xs active:scale-95 transition-all">
+                        <i data-lucide="qr-code" class="w-4 h-4"></i> LER ETIQUETA
                     </button>
                 </div>
 
-                <div id="reader" class="hidden mb-6 rounded-3xl overflow-hidden border-4 border-indigo-100"></div>
+                <div id="reader" class="hidden mb-6 rounded-3xl overflow-hidden border-4 border-indigo-100 bg-black aspect-square"></div>
                 
                 <form id="orderForm" class="space-y-4 pb-10">
-                    <input type="text" id="cliente" placeholder="Nome do Cliente" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium" required>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-gray-400 uppercase ml-2">Cliente</label>
+                        <input type="text" id="cliente" placeholder="Nome completo" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" required>
+                    </div>
                     
                     <input type="text" id="rua" placeholder="Rua e Complemento" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
 
@@ -84,10 +77,10 @@
                         <input type="text" id="numero" placeholder="Nº" class="p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
                     </div>
 
-                    <input type="tel" id="telefone" placeholder="Telefone (WhatsApp)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
+                    <input type="tel" id="telefone" placeholder="WhatsApp (DDD)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
 
                     <div class="flex items-center justify-between p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
-                        <div class="flex items-center gap-2 text-indigo-900 font-semibold">
+                        <div class="flex items-center gap-2 text-indigo-900 font-bold">
                             <i data-lucide="clock" class="w-4 h-4"></i>
                             <span class="text-sm">Agendar horário?</span>
                         </div>
@@ -97,101 +90,84 @@
                         </label>
                     </div>
 
-                    <div id="time-container" class="hidden space-y-2 animate-fade-in">
+                    <div id="time-container" class="hidden animate-fade-in">
                         <input type="datetime-local" id="horario" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
                     </div>
                     
-                    <button type="submit" class="w-full py-5 bg-indigo-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-indigo-200 active:scale-[0.97] transition-all">CRIAR PEDIDO</button>
+                    <button type="submit" class="w-full py-5 bg-indigo-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-indigo-100 active:scale-[0.97] transition-all">SALVAR ENTREGA</button>
                 </form>
             </div>
         </div>
 
-        <!-- Modal Assinatura -->
         <div id="signatureModal" class="fixed inset-0 z-50 hidden">
             <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal('signatureModal')"></div>
             <div class="absolute inset-y-0 inset-x-0 m-auto w-[92%] h-fit bg-white rounded-[2.5rem] p-8 shadow-2xl">
-                <h2 class="text-xl font-black mb-2 text-center text-gray-800">Assinatura Final</h2>
-                <p class="text-sm text-gray-500 text-center mb-6">Opcional para o cliente</p>
-                <canvas id="signature-pad" class="w-full h-56 bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl mb-6 touch-none" style="touch-action: none;"></canvas>
+                <h2 class="text-xl font-black mb-1 text-center text-gray-800">Assinatura</h2>
+                <p class="text-xs text-gray-400 text-center mb-6 uppercase font-bold tracking-widest">Confirmação do Cliente</p>
+                <canvas id="signature-pad" class="w-full h-56 bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl mb-6 touch-none"></canvas>
                 <div class="flex gap-4">
-                    <button onclick="closeModal('signatureModal')" class="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-bold active:scale-95 transition-all">PULAR</button>
-                    <button id="saveSignature" class="flex-1 py-4 bg-green-600 text-white rounded-2xl font-bold shadow-lg shadow-green-100 active:scale-95 transition-all">FINALIZAR</button>
+                    <button onclick="closeModal('signatureModal')" class="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-bold active:scale-95">PULAR</button>
+                    <button id="saveSignature" class="flex-1 py-4 bg-green-600 text-white rounded-2xl font-bold shadow-lg shadow-green-100 active:scale-95">CONCLUIR</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Dados
         const bairrosUnai = ["Água Branca","Água Branca II","Águas Claras","Amaral","Área Rural de Unaí","Bela Vista","Boa Vista","Cachoeira","Canabrava","Cangalha","Capim Branco","Centro","Cidade Nova","Cruzeiro","De Lourdes","Divinéia","Dom Bosco","Floresta","Industrial","Iuna","Jacilândia","Kamayura","Laguna","Mamoeiro","Nossa Senhora do Carmo","Nova Canaã","Nova Divinéia","Novo Horizonte","Novo Jardim","Politécnica","Primavera","Riviera Park","Sagarana","Santa Clara","Serenata","Vale Verde","Vila do Sol","Vila Militar"];
 
         let orders = JSON.parse(localStorage.getItem('delivery_orders')) || [];
         let viewDate = new Date();
         let currentOrderIndex = null;
         let html5QrCode = null;
-        
-        // --- Funções Globais ---
-        function showBairros() {
-            const list = document.getElementById('bairros-suggestions');
-            list.classList.remove('hidden');
-            filterBairros();
-        }
 
-        function filterBairros() {
-            const input = document.getElementById('bairro').value.toLowerCase();
-            const list = document.getElementById('bairros-suggestions');
-            const filtered = bairrosUnai.filter(b => b.toLowerCase().includes(input));
-            
-            list.innerHTML = filtered.map(b => `
-                <li onclick="selectBairro('${b.replace(/'/g, "\\'")}')" class="p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-medium cursor-pointer active:bg-indigo-100 text-gray-700">
-                    ${b}
-                </li>
-            `).join('');
-            
-            if(filtered.length === 0) list.classList.add('hidden');
-        }
-
-        function selectBairro(val) {
-            document.getElementById('bairro').value = val;
-            document.getElementById('bairros-suggestions').classList.add('hidden');
-        }
-
-        document.addEventListener('click', (e) => {
-            if (e.target.id !== 'bairro') document.getElementById('bairros-suggestions').classList.add('hidden');
-        });
-
-        function toggleTimeInput() {
-            const container = document.getElementById('time-container');
-            const isChecked = document.getElementById('toggle-horario').checked;
-            container.classList.toggle('hidden', !isChecked);
-        }
-
+        // --- LÓGICA DE SCANNER HÍBRIDO (UID + JSON) ---
         async function startQRScanner() {
             const readerDiv = document.getElementById('reader');
             readerDiv.classList.remove('hidden');
+            
+            // Puxa o "banco" do Gerador
+            const savedCustomers = JSON.parse(localStorage.getItem('saved_customers')) || [];
+
             try {
-                if (html5QrCode) {
-                    await html5QrCode.stop();
-                }
+                if (html5QrCode) await html5QrCode.stop();
                 html5QrCode = new Html5Qrcode("reader");
-                await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
-                    try {
-                        const data = JSON.parse(decodedText);
-                        document.getElementById('cliente').value = data.nome || '';
-                        document.getElementById('rua').value = data.rua || '';
-                        document.getElementById('bairro').value = data.bairro || '';
-                        document.getElementById('numero').value = data.numero || '';
-                        document.getElementById('telefone').value = data.telefone || '';
+                
+                await html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (decodedText) => {
+                    // 1. Tenta buscar por UID
+                    const found = savedCustomers.find(c => c.uid === decodedText);
+                    
+                    if (found) {
+                        fillForm(found);
                         stopScanner();
-                    } catch (e) { 
-                        alert("QR Inválido"); 
-                        stopScanner();
+                    } else {
+                        // 2. Tenta parsear JSON direto
+                        try {
+                            const data = JSON.parse(decodedText);
+                            fillForm(data);
+                            stopScanner();
+                        } catch (e) {
+                            alert("QR Code não reconhecido.");
+                            stopScanner();
+                        }
                     }
                 });
-            } catch (err) { 
-                alert("Erro ao acessar a câmera. Verifique as permissões.");
+            } catch (err) {
+                alert("Erro na câmera.");
                 readerDiv.classList.add('hidden');
             }
+        }
+
+        function fillForm(data) {
+            document.getElementById('cliente').value = data.nome || '';
+            document.getElementById('rua').value = data.rua || '';
+            document.getElementById('bairro').value = data.bairro || '';
+            document.getElementById('numero').value = data.numero || '';
+            document.getElementById('telefone').value = data.telefone || '';
+            
+            const form = document.getElementById('orderForm');
+            form.classList.add('animate-pulse');
+            setTimeout(() => form.classList.remove('animate-pulse'), 800);
         }
 
         function stopScanner() {
@@ -200,11 +176,10 @@
                     document.getElementById('reader').classList.add('hidden');
                     html5QrCode = null;
                 }).catch(() => {});
-            } else {
-                document.getElementById('reader').classList.add('hidden');
             }
         }
 
+        // --- RENDERIZAÇÃO E UI ---
         function renderOrders() {
             const main = document.getElementById('main-content');
             const dateStr = viewDate.toLocaleDateString('pt-BR');
@@ -214,67 +189,50 @@
             const filtered = orders.filter(o => new Date(o.dataView).toLocaleDateString('pt-BR') === dateStr);
 
             if(filtered.length === 0) {
-                main.innerHTML = `<div class="flex flex-col items-center justify-center h-80 text-gray-300"><i data-lucide="box" class="w-16 h-16 mb-4 opacity-20"></i><p class="font-bold">Nenhuma entrega agendada</p></div>`;
+                main.innerHTML = `<div class="flex flex-col items-center justify-center h-96 text-gray-300 opacity-40"><i data-lucide="package-open" class="w-20 h-20 mb-4"></i><p class="font-bold uppercase tracking-widest text-xs">Sem entregas</p></div>`;
             } else {
                 main.innerHTML = filtered.map((o, idx) => {
                     const originalIndex = orders.findIndex(order => order === o);
                     return `
-                    <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 mb-4 animate-fade-in relative overflow-hidden">
+                    <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 mb-4 animate-fade-in">
                         <div class="flex justify-between items-start mb-4">
-                            <div class="flex-1">
-                                <h3 class="font-black text-gray-800 text-lg leading-tight mb-1">${escapeHtml(o.cliente)}</h3>
-                                <div class="flex items-center gap-2 text-indigo-500 font-bold text-[10px] uppercase tracking-widest">
+                            <div>
+                                <h3 class="font-black text-gray-800 text-lg leading-tight mb-1">${o.cliente}</h3>
+                                <div class="flex items-center gap-2 text-indigo-500 font-bold text-[10px] uppercase">
                                     <i data-lucide="clock" class="w-3 h-3"></i>
-                                    ${o.horario ? new Date(o.horario).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Entrega Flexível'}
+                                    ${o.horario ? new Date(o.horario).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Flexível'}
                                 </div>
                             </div>
-                            <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider ${o.status === 'Pendente' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}">
+                            <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase ${o.status === 'Pendente' ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'}">
                                 ${o.status}
                             </span>
                         </div>
-                        <div class="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-100/50">
-                            <p class="text-xs text-gray-400 font-bold uppercase mb-1 tracking-tighter">Endereço</p>
-                            <p class="text-sm text-gray-700 leading-snug">
-                                <span class="font-medium">${escapeHtml(o.rua)}, ${escapeHtml(o.numero)}</span><br>
-                                <span class="text-indigo-600 font-bold">${escapeHtml(o.bairro)}</span>
+                        <div class="bg-gray-50 rounded-3xl p-4 mb-5 border border-gray-100/50">
+                            <p class="text-[10px] text-gray-400 font-black uppercase mb-1">Destino</p>
+                            <p class="text-sm text-gray-700 font-medium">
+                                ${o.rua}, ${o.numero}<br>
+                                <span class="text-indigo-600 font-bold">${o.bairro}</span>
                             </p>
                         </div>
-                        ${o.status === 'Pendente' ? `<button onclick="startFinishOrder(${originalIndex})" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 active:scale-95 transition-all">FINALIZAR ENTREGA</button>` : `<div class="flex items-center text-green-600 text-xs font-black uppercase"><i data-lucide="verified" class="w-4 h-4 mr-1"></i> Concluído</div>`}
+                        ${o.status === 'Pendente' ? 
+                            `<button onclick="startFinishOrder(${originalIndex})" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 active:scale-95 transition-all uppercase tracking-tight">Finalizar Entrega</button>` : 
+                            `<div class="flex items-center justify-center py-2 text-green-600 text-xs font-black uppercase"><i data-lucide="check-circle" class="w-4 h-4 mr-2"></i> Pedido Entregue</div>`
+                        }
                     </div>
                 `}).join('');
             }
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            lucide.createIcons();
         }
 
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-
+        // --- EVENTOS DO FORMULÁRIO ---
         document.getElementById('orderForm').onsubmit = (e) => {
             e.preventDefault();
-            const cliente = document.getElementById('cliente').value.trim();
-            const rua = document.getElementById('rua').value.trim();
-            const bairro = document.getElementById('bairro').value.trim();
-            const numero = document.getElementById('numero').value.trim();
-            const telefone = document.getElementById('telefone').value.trim();
-            
-            if (!cliente || !rua || !bairro || !numero || !telefone) {
-                alert("Preencha todos os campos obrigatórios!");
-                return;
-            }
-            
             orders.push({
-                cliente: cliente,
-                rua: rua,
-                bairro: bairro,
-                numero: numero,
-                telefone: telefone,
+                cliente: document.getElementById('cliente').value,
+                rua: document.getElementById('rua').value,
+                bairro: document.getElementById('bairro').value,
+                numero: document.getElementById('numero').value,
+                telefone: document.getElementById('telefone').value,
                 horario: document.getElementById('toggle-horario').checked ? document.getElementById('horario').value : null,
                 dataView: viewDate.toISOString(),
                 status: 'Pendente'
@@ -283,161 +241,65 @@
             closeModal('orderModal');
             renderOrders();
             e.target.reset();
-            document.getElementById('time-container').classList.add('hidden');
-            document.getElementById('toggle-horario').checked = false;
         };
 
-        function changeDate(days) { 
-            viewDate.setDate(viewDate.getDate() + days); 
-            renderOrders(); 
+        // --- AUXILIARES ---
+        function changeDate(days) { viewDate.setDate(viewDate.getDate() + days); renderOrders(); }
+        function toggleTimeInput() { document.getElementById('time-container').classList.toggle('hidden', !document.getElementById('toggle-horario').checked); }
+        function showBairros() { document.getElementById('bairros-suggestions').classList.remove('hidden'); filterBairros(); }
+        function filterBairros() {
+            const input = document.getElementById('bairro').value.toLowerCase();
+            const list = document.getElementById('bairros-suggestions');
+            const filtered = bairrosUnai.filter(b => b.toLowerCase().includes(input));
+            list.innerHTML = filtered.map(b => `<li onclick="selectBairro('${b}')" class="p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-bold cursor-pointer text-gray-700">${b}</li>`).join('');
+            if(filtered.length === 0) list.classList.add('hidden');
         }
-        
-        function openModal(id) { 
-            const modal = document.getElementById(id);
-            if (modal) {
-                modal.classList.remove('hidden');
-                document.body.classList.add('modal-open');
-                if (id === 'signatureModal') {
-                    setTimeout(() => resizeCanvas(), 100);
-                }
-            }
-        }
-        
-        function closeModal(id) { 
-            const modal = document.getElementById(id);
-            if (modal) {
-                modal.classList.add('hidden');
-                document.body.classList.remove('modal-open');
-                if (id === 'orderModal') stopScanner();
-            }
-        }
+        function selectBairro(val) { document.getElementById('bairro').value = val; document.getElementById('bairros-suggestions').classList.add('hidden'); }
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.body.classList.add('modal-open'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.body.classList.remove('modal-open'); stopScanner(); }
 
-        // --- Assinatura ---
+        // --- ASSINATURA ---
         let canvas, ctx, drawing = false;
-        
-        function resizeCanvas() {
+        function setupCanvas() {
             canvas = document.getElementById('signature-pad');
-            if (!canvas) return;
             ctx = canvas.getContext('2d');
             const rect = canvas.getBoundingClientRect();
             canvas.width = rect.width;
             canvas.height = rect.height;
             ctx.strokeStyle = "#4f46e5";
-            ctx.lineWidth = 4;
+            ctx.lineWidth = 3;
             ctx.lineCap = "round";
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
         
-        function getCanvasCoords(e) {
+        function getCoords(e) {
             const rect = canvas.getBoundingClientRect();
-            let clientX, clientY;
-            if (e.touches) {
-                clientX = e.touches[0].clientX;
-                clientY = e.touches[0].clientY;
-            } else {
-                clientX = e.clientX;
-                clientY = e.clientY;
-            }
-            const x = clientX - rect.left;
-            const y = clientY - rect.top;
-            return { x: Math.max(0, Math.min(canvas.width, x)), y: Math.max(0, Math.min(canvas.height, y)) };
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
         }
-        
-        function startDrawing(e) {
-            drawing = true;
-            const pos = getCanvasCoords(e);
-            ctx.beginPath();
-            ctx.moveTo(pos.x, pos.y);
-            e.preventDefault();
-        }
-        
-        function draw(e) {
-            if (!drawing) return;
-            const pos = getCanvasCoords(e);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.stroke();
-            e.preventDefault();
-        }
-        
-        function stopDrawing() {
-            drawing = false;
-        }
-        
+
         function startFinishOrder(idx) {
             currentOrderIndex = idx;
             openModal('signatureModal');
-            resizeCanvas();
-            if (canvas) {
-                canvas.addEventListener('touchstart', startDrawing);
-                canvas.addEventListener('touchmove', draw);
-                canvas.addEventListener('touchend', stopDrawing);
-                canvas.addEventListener('mousedown', startDrawing);
-                canvas.addEventListener('mousemove', draw);
-                canvas.addEventListener('mouseup', stopDrawing);
-            }
+            setTimeout(setupCanvas, 50);
         }
-        
+
+        document.getElementById('signature-pad').addEventListener('touchstart', (e) => { drawing = true; const p = getCoords(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); });
+        document.getElementById('signature-pad').addEventListener('touchmove', (e) => { if(!drawing) return; const p = getCoords(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); });
+        document.getElementById('signature-pad').addEventListener('touchend', () => drawing = false);
+
         document.getElementById('saveSignature').onclick = () => {
-            if (currentOrderIndex !== null) {
-                orders[currentOrderIndex].status = 'Finalizado';
-                localStorage.setItem('delivery_orders', JSON.stringify(orders));
-                closeModal('signatureModal');
-                renderOrders();
-                if (canvas) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    canvas.removeEventListener('touchstart', startDrawing);
-                    canvas.removeEventListener('touchmove', draw);
-                    canvas.removeEventListener('touchend', stopDrawing);
-                    canvas.removeEventListener('mousedown', startDrawing);
-                    canvas.removeEventListener('mousemove', draw);
-                    canvas.removeEventListener('mouseup', stopDrawing);
-                }
-            }
+            orders[currentOrderIndex].status = 'Finalizado';
+            localStorage.setItem('delivery_orders', JSON.stringify(orders));
+            closeModal('signatureModal');
+            renderOrders();
         };
 
-        // Inicialização e eventos para mobile
-        window.onload = () => { 
-            renderOrders(); 
+        window.onload = () => {
+            renderOrders();
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            const datetimeLocal = now.toISOString().slice(0, 16);
-            document.getElementById('horario').value = datetimeLocal;
-            
-            // Garantir que o botão de adicionar funcione no celular
-            const addBtn = document.getElementById('addOrderBtn');
-            if (addBtn) {
-                addBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    openModal('orderModal');
-                });
-                addBtn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    openModal('orderModal');
-                });
-            }
-            
-            const qrBtn = document.getElementById('qrScanBtn');
-            if (qrBtn) {
-                qrBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    startQRScanner();
-                });
-                qrBtn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    startQRScanner();
-                });
-            }
-            
-            // Prevenir scroll do fundo quando modal aberto
-            const modals = ['orderModal', 'signatureModal'];
-            modals.forEach(id => {
-                const modal = document.getElementById(id);
-                if (modal) {
-                    modal.addEventListener('touchmove', (e) => {
-                        if (e.target === modal || e.target === modal.firstChild) e.preventDefault();
-                    }, { passive: false });
-                }
-            });
+            document.getElementById('horario').value = now.toISOString().slice(0, 16);
         };
     </script>
 </body>
