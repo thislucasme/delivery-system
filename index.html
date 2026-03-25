@@ -121,12 +121,11 @@
         let currentOrderIndex = null;
         let html5QrCode = null;
 
-        // --- LÓGICA DE SCANNER HÍBRIDO (UID + JSON) ---
+// --- LÓGICA DE SCANNER HÍBRIDO ATUALIZADA (COM MOCK) ---
         async function startQRScanner() {
             const readerDiv = document.getElementById('reader');
             readerDiv.classList.remove('hidden');
             
-            // Puxa o "banco" do Gerador
             const savedCustomers = JSON.parse(localStorage.getItem('saved_customers')) || [];
 
             try {
@@ -134,7 +133,22 @@
                 html5QrCode = new Html5Qrcode("reader");
                 
                 await html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (decodedText) => {
-                    // 1. Tenta buscar por UID
+                    
+                    // LÓGICA DE MOCK PARA O ID ESPECÍFICO
+                    if (decodedText === "fa4e8e05-c665-495d-bd79-68de0b5b46da") {
+                        const mockUser = {
+                            nome: "João Silva",
+                            rua: "Rua das Flores, AP 202",
+                            bairro: "Centro",
+                            numero: "123",
+                            telefone: "38999999999"
+                        };
+                        fillForm(mockUser);
+                        stopScanner();
+                        return; // Interrompe o processamento normal
+                    }
+
+                    // 1. Tenta buscar por UID no localStorage
                     const found = savedCustomers.find(c => c.uid === decodedText);
                     
                     if (found) {
@@ -157,7 +171,6 @@
                 readerDiv.classList.add('hidden');
             }
         }
-
         function fillForm(data) {
             document.getElementById('cliente').value = data.nome || '';
             document.getElementById('rua').value = data.rua || '';
