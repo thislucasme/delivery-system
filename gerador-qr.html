@@ -1,231 +1,1456 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Gerador QR Unaí - MVP UID</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background: #f9fafb; }
-        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); }
-        .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes pop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        button { touch-action: manipulation; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=yes"
+  />
+  <title>Gerador QR Unaí</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f9fafb;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .animate-pop {
+      animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes pop {
+      from {
+        opacity: 0;
+        transform: scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 999px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 52px;
+      height: 30px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      inset: 0;
+      cursor: pointer;
+      background-color: #cbd5e1;
+      transition: 0.3s;
+      border-radius: 999px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: '';
+      width: 24px;
+      height: 24px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #4f46e5;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(22px);
+    }
+
+    .badge-status {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-pendente {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-em-rota {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .status-entregue {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-cancelado {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .badge-a-receber {
+      background: #fef9c3;
+      color: #854d0e;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .table-hover:hover {
+      background: #f9fafb;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-container {
+      background: white;
+      border-radius: 2rem;
+      max-width: 90%;
+      width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: scale(0.95);
+      transition: transform 0.3s ease;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal-overlay.active .modal-container {
+      transform: scale(1);
+    }
+
+    /* QR Modal específico */
+    .qr-modal-container {
+      max-width: 400px;
+      text-align: center;
+    }
+
+    /* Melhorias na tabela */
+    .orders-table-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .orders-table {
+      min-width: 1300px;
+      width: 100%;
+    }
+
+    @media (min-width: 1400px) {
+      .orders-table {
+        min-width: 100%;
+      }
+    }
+
+    /* Cards para mobile */
+    @media (max-width: 768px) {
+      .orders-table-container {
+        overflow-x: visible;
+      }
+      
+      .orders-table {
+        min-width: 100%;
+      }
+      
+      .mobile-card {
+        display: block;
+      }
+      
+      .desktop-table {
+        display: none;
+      }
+    }
+
+    @media (min-width: 769px) {
+      .mobile-card {
+        display: none;
+      }
+      
+      .desktop-table {
+        display: block;
+      }
+    }
+
+    .order-card {
+      background: white;
+      border-radius: 1rem;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      border: 1px solid #f0f0f0;
+      transition: all 0.2s;
+    }
+
+    .order-card:hover {
+      border-color: #e0e0e0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .card-field {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-label {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #9ca3af;
+      letter-spacing: 0.05em;
+    }
+
+    .card-value {
+      font-weight: 600;
+      color: #1f2937;
+      text-align: right;
+      word-break: break-word;
+      max-width: 60%;
+    }
+  </style>
 </head>
 <body class="text-gray-900 min-h-screen">
 
-    <div class="max-w-md mx-auto min-h-screen flex flex-col p-6 pb-24">
-        
-        <header class="flex items-center justify-between mb-8">
-            <div>
-                <h1 class="text-2xl font-black text-indigo-600 tracking-tight">QR Generator</h1>
-                <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Sistema de UID v1.0</p>
-            </div>
-            <div class="bg-indigo-100 p-3 rounded-2xl text-indigo-600">
-                <i data-lucide="database" class="w-6 h-6"></i>
-            </div>
-        </header>
+  <div class="max-w-[1600px] mx-auto min-h-screen p-4 md:p-6 lg:p-8">
 
-        <div class="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-100 mb-6">
-            <form id="qrForm" class="space-y-4">
-                
-                <div class="relative">
-                    <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block tracking-tighter">Nome do Cliente</label>
-                    <input type="text" id="cliente" placeholder="Buscar ou cadastrar novo" 
-                           oninput="filterClientes()" onfocus="showClientes()"
-                           class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" autocomplete="off" required>
-                    <ul id="clientes-suggestions" class="absolute left-0 right-0 mt-2 bg-white border border-gray-100 shadow-2xl rounded-2xl max-h-48 overflow-y-auto z-50 hidden custom-scroll"></ul>
-                </div>
+    <!-- HEADER -->
+    <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
+      <div>
+        <h1 class="text-2xl md:text-3xl lg:text-4xl font-black text-indigo-600 tracking-tight">
+          QR Generator
+        </h1>
+        <p class="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em] mt-1">
+          Cadastro de Etiquetas / Pedidos
+        </p>
+      </div>
 
-                <div class="space-y-4">
-                    <input type="text" id="rua" placeholder="Rua e Complemento" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
-                    
-                    <div class="grid grid-cols-2 gap-4 relative">
-                        <div class="relative">
-                            <input type="text" id="bairro" placeholder="Bairro" oninput="filterBairros()" onfocus="showBairros()" 
-                                   class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" autocomplete="off" required>
-                            <ul id="bairros-suggestions" class="absolute left-0 right-0 mt-2 bg-white border border-gray-100 shadow-xl rounded-2xl max-h-48 overflow-y-auto z-50 hidden custom-scroll"></ul>
-                        </div>
-                        <input type="text" id="numero" placeholder="Nº" class="p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
-                    </div>
+      <div class="flex gap-3 w-full sm:w-auto">
+        <button
+          onclick="openModal()"
+          class="flex-1 sm:flex-none bg-indigo-600 text-white px-4 md:px-6 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:bg-indigo-700 transition-all active:scale-95"
+        >
+          <i data-lucide="plus" class="w-5 h-5"></i>
+          Criar Pedido
+        </button>
 
-                    <input type="tel" id="telefone" placeholder="WhatsApp (DDD)" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium" required>
-                </div>
-
-                <button type="submit" class="w-full py-5 bg-indigo-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-indigo-100 active:scale-[0.97] transition-all flex items-center justify-center gap-2 mt-4">
-                    <i data-lucide="qr-code" class="w-5 h-5"></i> GERAR E VINCULAR UID
-                </button>
-            </form>
+        <div class="bg-indigo-100 p-3 md:p-4 rounded-2xl text-indigo-600 shadow-sm">
+          <i data-lucide="qr-code" class="w-6 h-6 md:w-7 md:h-7"></i>
         </div>
+      </div>
+    </header>
 
-        <div id="result-area" class="hidden animate-pop flex flex-col items-center pb-10">
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-indigo-50 mb-6 flex flex-col items-center w-full">
-                <div id="qrcode" class="mb-6 p-4 bg-white rounded-2xl border border-gray-50"></div>
-                <div class="text-center">
-                    <p id="uid-display" class="text-xs font-mono text-gray-400 mb-2"></p>
-                    <div id="status-container" class="flex items-center justify-center gap-3">
-                        <div class="w-2 h-2 bg-indigo-600 rounded-full animate-ping"></div>
-                        <p id="printing-msg" class="text-indigo-600 font-black text-sm tracking-tight uppercase">Salvando no Banco...</p>
-                    </div>
-                </div>
-            </div>
-            
-            <button onclick="resetForm()" class="px-6 py-3 bg-gray-100 text-gray-500 font-bold rounded-2xl text-sm flex items-center gap-2 active:scale-95 transition-all">
-                <i data-lucide="plus" class="w-4 h-4"></i> CADASTRAR OUTRO
+    <!-- LISTA DE PEDIDOS OCUPANDO TELA INTEIRA -->
+    <div class="w-full">
+      <div class="bg-white rounded-2xl md:rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-4 md:p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 class="text-lg md:text-xl font-black text-gray-900">Pedidos</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Listagem completa de todos os pedidos</p>
+          </div>
+
+          <div class="flex gap-3">
+            <button
+              onclick="carregarPedidos()"
+              class="px-4 py-2.5 md:py-3 bg-indigo-600 text-white rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-indigo-700 transition-colors"
+            >
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              Atualizar
             </button>
+          </div>
         </div>
 
+        <!-- Versão Desktop - Tabela -->
+        <div class="desktop-table orders-table-container custom-scroll">
+          <table class="orders-table text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr class="text-left text-gray-500 uppercase text-[10px] md:text-[11px] tracking-wider">
+                <th class="px-4 md:px-5 py-3 md:py-4 font-black">Cliente / UID</th>
+                <th class="px-4 md:px-5 py-3 md:py-4 font-black">Endereço</th>
+                <th class="px-4 md:px-5 py-3 md:py-4 font-black">Contato</th>
+                <th class="px-4 md:px-5 py-3 md:py-4 font-black">Agendamento</th>
+                <th class="px-4 md:px-5 py-3 md:py-4 font-black">Pagamento</th>
+                <th class="px-4 md:px-5 py-3 md:py-4 font-black">Motorista</th>
+                <th class="px-4 md:px-5 py-3 md:py-4 font-black">Status</th>
+                <th class="px-4 md:px-5 py-3 md:py-4 font-black text-right">Ações</th>
+               </tr>
+            </thead>
+            <tbody id="ordersTableBody" class="divide-y divide-gray-100">
+              <tr>
+                <td colspan="8" class="px-5 py-10 text-center text-gray-400 font-semibold">
+                  Carregando pedidos...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Versão Mobile - Cards -->
+        <div id="mobileOrdersContainer" class="mobile-card p-4 space-y-3"></div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        const bairrosUnai = ["Água Branca","Água Branca II","Águas Claras","Amaral","Área Rural de Unaí","Bela Vista","Boa Vista","Cachoeira","Canabrava","Cangalha","Capim Branco","Centro","Cidade Nova","Cruzeiro","De Lourdes","Divinéia","Dom Bosco","Floresta","Industrial","Iuna","Jacilândia","Kamayura","Laguna","Mamoeiro","Nossa Senhora do Carmo","Nova Canaã","Nova Divinéia","Novo Horizonte","Novo Jardim","Politécnica","Primavera","Riviera Park","Sagarana","Santa Clara","Serenata","Vale Verde","Vila do Sol","Vila Militar"];
+  <!-- MODAL DO FORMULÁRIO -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal-container custom-scroll">
+      <div class="sticky top-0 bg-white border-b border-gray-100 p-4 md:p-6 rounded-t-2xl flex justify-between items-center">
+        <div>
+          <h2 class="text-lg md:text-xl font-black text-gray-900">Novo Pedido</h2>
+          <p class="text-xs md:text-sm text-gray-500 mt-1">Preencha os dados e gere o QR code.</p>
+        </div>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
+          <i data-lucide="x" class="w-5 h-5 md:w-6 md:h-6"></i>
+        </button>
+      </div>
 
-        // Mock de banco de dados no LocalStorage
-        let savedClientes = JSON.parse(localStorage.getItem('saved_customers')) || [];
+      <div class="p-4 md:p-6">
+        <form id="qrForm" class="space-y-4">
 
-        // Gerador de UID Único para o MVP
-        const generateUID = () => 'UID-' + Math.random().toString(36).substr(2, 7).toUpperCase();
+          <!-- Nome -->
+          <div class="relative">
+            <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block tracking-wider">
+              Nome do Cliente *
+            </label>
+            <input
+              type="text"
+              id="cliente"
+              placeholder="Digite para buscar ou cadastrar"
+              oninput="filterClientes()"
+              onfocus="showClientes()"
+              class="w-full p-3 md:p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-semibold text-sm md:text-base"
+              autocomplete="off"
+              required
+            />
+            <ul
+              id="clientes-suggestions"
+              class="absolute left-0 right-0 mt-2 bg-white border border-gray-200 shadow-2xl rounded-2xl max-h-48 overflow-y-auto z-50 hidden custom-scroll"
+            ></ul>
+          </div>
 
-        // --- LÓGICA AUTOCOMPLETE CLIENTE ---
-        function showClientes() {
-            const list = document.getElementById('clientes-suggestions');
-            list.classList.remove('hidden');
-            filterClientes();
-        }
+          <!-- Rua -->
+          <div>
+            <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block tracking-wider">
+              Rua e Complemento *
+            </label>
+            <input
+              type="text"
+              id="rua"
+              placeholder="Rua e Complemento"
+              class="w-full p-3 md:p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm md:text-base"
+              required
+            />
+          </div>
 
-        function filterClientes() {
-            const input = document.getElementById('cliente').value.toLowerCase();
-            const list = document.getElementById('clientes-suggestions');
-            const filtered = savedClientes.filter(c => c.nome.toLowerCase().includes(input));
-            
-            if(filtered.length === 0) {
-                list.classList.add('hidden');
-                return;
+          <!-- Bairro / Número -->
+          <div class="grid grid-cols-2 gap-4 relative">
+            <div class="relative">
+              <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block tracking-wider">
+                Bairro *
+              </label>
+              <input
+                type="text"
+                id="bairro"
+                placeholder="Bairro"
+                oninput="filterBairros()"
+                onfocus="showBairros()"
+                class="w-full p-3 md:p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm md:text-base"
+                autocomplete="off"
+                required
+              />
+              <ul
+                id="bairros-suggestions"
+                class="absolute left-0 right-0 mt-2 bg-white border border-gray-200 shadow-xl rounded-2xl max-h-48 overflow-y-auto z-50 hidden custom-scroll"
+              ></ul>
+            </div>
+
+            <div>
+              <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block tracking-wider">
+                Número *
+              </label>
+              <input
+                type="text"
+                id="numero"
+                placeholder="Nº"
+                class="w-full p-3 md:p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm md:text-base"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Telefone -->
+          <div>
+            <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block tracking-wider">
+              Telefone (WhatsApp) *
+            </label>
+            <input
+              type="tel"
+              id="telefone"
+              placeholder="(61) 99999-9999"
+              class="w-full p-3 md:p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm md:text-base"
+              required
+            />
+          </div>
+
+          <!-- Caixa - Agora com select e autocomplete similar aos bairros -->
+          <div class="relative">
+            <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block tracking-wider">
+              Nome do Caixa
+            </label>
+            <input
+              type="text"
+              id="nomeCaixa"
+              placeholder="Digite para buscar caixa"
+              oninput="filterCaixas()"
+              onfocus="showCaixas()"
+              class="w-full p-3 md:p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm md:text-base"
+              autocomplete="off"
+            />
+            <input type="hidden" id="nomeCaixaUid" />
+            <ul
+              id="caixas-suggestions"
+              class="absolute left-0 right-0 mt-2 bg-white border border-gray-200 shadow-xl rounded-2xl max-h-48 overflow-y-auto z-50 hidden custom-scroll"
+            ></ul>
+          </div>
+
+          <!-- A Receber - Switch que controla os campos de valores -->
+          <div class="bg-purple-50 rounded-2xl p-4 border border-purple-100">
+            <div class="flex items-center justify-between">
+              <label class="font-bold text-purple-900 text-sm">A Receber</label>
+              <label class="switch">
+                <input type="checkbox" id="aReceber" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Campos de valores que só aparecem quando "A Receber" estiver ativo -->
+          <div id="camposRecebimento" style="display: none;">
+            <div class="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+              <h3 class="font-bold text-blue-900 text-sm mb-3">Informações de Pagamento</h3>
+              
+              <!-- Forma de Pagamento -->
+              <div class="mb-3">
+                <label class="text-[10px] font-black text-gray-500 uppercase ml-2 mb-1 block tracking-wider">
+                  Forma de Pagamento
+                </label>
+                <select
+                  id="formaPagamento"
+                  class="w-full p-3 md:p-4 bg-white border border-blue-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm md:text-base"
+                >
+                  <option value="">Selecione uma forma de pagamento</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="Cartão de Crédito">Cartão de Crédito</option>
+                  <option value="Cartão de Débito">Cartão de Débito</option>
+                  <option value="PIX">PIX</option>
+                  <option value="Vale Refeição">Vale Refeição</option>
+                  <option value="Vale Alimentação">Vale Alimentação</option>
+                </select>
+              </div>
+
+              <!-- Total do Pedido -->
+              <div class="mb-3">
+                <label class="text-[10px] font-black text-gray-500 uppercase ml-2 mb-1 block tracking-wider">
+                  Total do Pedido (R$)
+                </label>
+                <input
+                  type="number"
+                  id="totalPedido"
+                  step="0.01"
+                  placeholder="Ex: 87.40"
+                  class="w-full p-3 md:p-4 bg-white border border-blue-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm md:text-base"
+                />
+              </div>
+
+              <!-- Valor que o cliente vai pagar -->
+              <div class="mb-3">
+                <label class="text-[10px] font-black text-gray-500 uppercase ml-2 mb-1 block tracking-wider">
+                  Valor que o Cliente vai Pagar (R$)
+                </label>
+                <input
+                  type="number"
+                  id="valorPagoCliente"
+                  step="0.01"
+                  placeholder="Ex: 100.00"
+                  class="w-full p-3 md:p-4 bg-white border border-blue-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm md:text-base"
+                />
+              </div>
+
+              <!-- Troco entregue ao motorista -->
+              <div>
+                <label class="text-[10px] font-black text-gray-500 uppercase ml-2 mb-1 block tracking-wider">
+                  Troco Entregue ao Motorista (R$)
+                </label>
+                <input
+                  type="number"
+                  id="trocoEntregueMotorista"
+                  step="0.01"
+                  placeholder="Ex: 20.00"
+                  class="w-full p-3 md:p-4 bg-white border border-blue-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm md:text-base"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Precisa de troco? (apenas switch, sem campo de valor) -->
+          <div class="bg-amber-50 rounded-2xl p-4 border border-amber-100">
+            <div class="flex items-center justify-between">
+              <label class="font-bold text-amber-900 text-sm">Precisa de troco?</label>
+              <label class="switch">
+                <input type="checkbox" id="troco" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Maquininha -->
+          <div class="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
+            <div class="flex items-center justify-between">
+              <label class="font-bold text-emerald-900 text-sm">Levar máquina de cartão?</label>
+              <label class="switch">
+                <input type="checkbox" id="levarMaquinaCartao" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Agendamento -->
+          <div class="bg-indigo-50 rounded-2xl p-4 border border-indigo-100">
+            <div class="flex items-center justify-between mb-4">
+              <label class="font-bold text-indigo-900 text-sm">Agendar horário de entrega?</label>
+              <label class="switch">
+                <input type="checkbox" id="agendarHorario" />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div id="agendamentoFields" style="display: none;">
+              <div class="space-y-3">
+                <div>
+                  <label class="text-[10px] font-black text-gray-500 uppercase ml-2 mb-1 block tracking-wider">
+                    Data da Entrega
+                  </label>
+                  <input
+                    type="date"
+                    id="dataEntrega"
+                    class="w-full p-3 md:p-4 bg-white border border-indigo-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm md:text-base"
+                  />
+                </div>
+                <div>
+                  <label class="text-[10px] font-black text-gray-500 uppercase ml-2 mb-1 block tracking-wider">
+                    Horário da Entrega
+                  </label>
+                  <input
+                    type="time"
+                    id="horaEntrega"
+                    class="w-full p-3 md:p-4 bg-white border border-indigo-100 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm md:text-base"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 pt-4">
+            <button
+              type="submit"
+              id="submitBtn"
+              class="flex-1 py-4 md:py-5 bg-indigo-600 text-white font-black text-base md:text-lg rounded-2xl shadow-xl shadow-indigo-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <i data-lucide="zap" class="w-5 h-5 fill-current"></i> GERAR QR CODE
+            </button>
+            <button
+              type="button"
+              onclick="closeModal()"
+              class="px-4 md:px-6 py-4 md:py-5 bg-gray-100 text-gray-600 font-bold rounded-2xl active:scale-95 transition-all text-sm md:text-base"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DO QR CODE -->
+  <div id="qrModalOverlay" class="modal-overlay">
+    <div class="modal-container qr-modal-container">
+      <div class="bg-white p-6 rounded-2xl">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-black text-gray-900">QR Code do Pedido</h3>
+          <button onclick="closeQrModal()" class="text-gray-400 hover:text-gray-600">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div id="qrModalContent" class="flex flex-col items-center">
+          <div id="qrcodeModal" class="mb-4 p-4 bg-white rounded-2xl border border-gray-100"></div>
+          <p id="qrModalUid" class="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 p-3 rounded-xl break-all w-full text-center"></p>
+          <div class="flex gap-3 w-full mt-6">
+            <button
+              onclick="printQrFromModal()"
+              class="flex-1 px-4 py-3 bg-green-600 text-white font-bold rounded-2xl text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+            >
+              <i data-lucide="printer" class="w-4 h-4"></i> IMPRIMIR
+            </button>
+            <button
+              onclick="closeQrModal()"
+              class="flex-1 px-4 py-3 bg-gray-100 text-gray-600 font-bold rounded-2xl text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+            >
+              <i data-lucide="x" class="w-4 h-4"></i> FECHAR
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://172.233.46.99:3004/orders';
+
+    const bairrosUnai = [
+      "Água Branca","Água Branca II","Águas Claras","Amaral","Área Rural de Unaí","Bela Vista","Boa Vista",
+      "Cachoeira","Canabrava","Cangalha","Capim Branco","Centro","Cidade Nova","Cruzeiro","De Lourdes",
+      "Divinéia","Dom Bosco","Floresta","Industrial","Iuna","Jacilândia","Kamayura","Laguna","Mamoeiro",
+      "Nossa Senhora do Carmo","Nova Canaã","Nova Divinéia","Novo Horizonte","Novo Jardim","Politécnica",
+      "Primavera","Riviera Park","Sagarana","Santa Clara","Serenata","Vale Verde","Vila do Sol","Vila Militar"
+    ];
+
+    // Lista de caixas (nome e uid)
+    const caixasLista = [
+      { nome: "Caixa 01 - Ana Silva", uid: "5ea8e2f6-19e9-44db-bc91-a78hd0ec4f54" }
+    ];
+
+    let savedClientes = JSON.parse(localStorage.getItem('saved_customers')) || [];
+    let currentQrUid = null;
+
+    // Modal functions
+    function openModal() {
+      const modal = document.getElementById('modalOverlay');
+      modal.classList.add('active');
+      resetModalForm();
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('modalOverlay');
+      modal.classList.remove('active');
+    }
+
+    function openQrModal(uid) {
+      const modal = document.getElementById('qrModalOverlay');
+      const qrContainer = document.getElementById('qrcodeModal');
+      currentQrUid = uid;
+      
+      qrContainer.innerHTML = '';
+      
+      new QRCode(qrContainer, {
+        text: uid,
+        width: 220,
+        height: 220,
+        colorDark: '#4f46e5',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+      
+      document.getElementById('qrModalUid').innerText = uid;
+      modal.classList.add('active');
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function closeQrModal() {
+      const modal = document.getElementById('qrModalOverlay');
+      modal.classList.remove('active');
+      currentQrUid = null;
+    }
+
+    function printQrFromModal() {
+      const qrCodeDiv = document.getElementById('qrcodeModal');
+      const uid = currentQrUid;
+      
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>QR Code Pedido</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+              background: white;
             }
-
-            list.innerHTML = filtered.map(c => `
-                <li onclick="selectCliente('${c.uid}')" class="p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-bold cursor-pointer text-gray-700 flex justify-between items-center active:bg-indigo-100">
-                    <div>
-                        <p class="text-gray-900">${c.nome}</p>
-                        <p class="text-[10px] text-indigo-500 uppercase font-black tracking-tighter">${c.uid} • ${c.bairro}</p>
-                    </div>
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-green-400"></i>
-                </li>
-            `).join('');
-            list.classList.remove('hidden');
-            lucide.createIcons();
-        }
-
-        function selectCliente(uid) {
-            const client = savedClientes.find(c => c.uid === uid);
-            if(client) {
-                document.getElementById('cliente').value = client.nome;
-                document.getElementById('rua').value = client.rua;
-                document.getElementById('bairro').value = client.bairro;
-                document.getElementById('numero').value = client.numero;
-                document.getElementById('telefone').value = client.telefone;
+            .qr-container {
+              text-align: center;
+              padding: 20px;
             }
-            document.getElementById('clientes-suggestions').classList.add('hidden');
-        }
-
-        // --- LÓGICA AUTOCOMPLETE BAIRRO ---
-        function showBairros() {
-            const list = document.getElementById('bairros-suggestions');
-            list.classList.remove('hidden');
-            filterBairros();
-        }
-
-        function filterBairros() {
-            const input = document.getElementById('bairro').value.toLowerCase();
-            const list = document.getElementById('bairros-suggestions');
-            const filtered = bairrosUnai.filter(b => b.toLowerCase().includes(input));
-            
-            list.innerHTML = filtered.map(b => `
-                <li onclick="selectBairro('${b.replace(/'/g, "\\'")}')" class="p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-medium cursor-pointer active:bg-indigo-100 text-gray-700">
-                    ${b}
-                </li>
-            `).join('');
-            
-            if(filtered.length === 0) list.classList.add('hidden');
-        }
-
-        function selectBairro(val) {
-            document.getElementById('bairro').value = val;
-            document.getElementById('bairros-suggestions').classList.add('hidden');
-        }
-
-        // --- SUBMISSÃO E GERAÇÃO DO QR ---
-        document.getElementById('qrForm').onsubmit = (e) => {
-            e.preventDefault();
-            
-            const nomeInput = document.getElementById('cliente').value.trim();
-            
-            // Verifica se o cliente já existe para não duplicar UID
-            let existingClient = savedClientes.find(c => c.nome.toLowerCase() === nomeInput.toLowerCase());
-            
-            const clientData = {
-                uid: existingClient ? existingClient.uid : generateUID(),
-                nome: nomeInput,
-                rua: document.getElementById('rua').value.trim(),
-                bairro: document.getElementById('bairro').value.trim(),
-                numero: document.getElementById('numero').value.trim(),
-                telefone: document.getElementById('telefone').value.trim(),
-                data: new Date().toLocaleDateString('pt-BR')
+            .qr-code {
+              margin: 20px auto;
+            }
+            .info {
+              margin-top: 20px;
+              font-size: 12px;
+              color: #666;
+            }
+            .uid {
+              font-family: monospace;
+              font-size: 10px;
+              color: #4f46e5;
+              margin-top: 10px;
+              word-break: break-all;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <h2>QR Code de Entrega</h2>
+            <div class="qr-code">${qrCodeDiv.innerHTML}</div>
+            <div class="info">
+              <p>UID do Pedido:</p>
+              <p class="uid">${uid}</p>
+            </div>
+          </div>
+          <script>
+            window.onload = () => {
+              setTimeout(() => {
+                window.print();
+                setTimeout(() => window.close(), 500);
+              }, 500);
             };
+          <\/script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
 
-            // Salva ou atualiza no LocalStorage
-            if(existingClient) {
-                const index = savedClientes.indexOf(existingClient);
-                savedClientes[index] = clientData;
-            } else {
-                savedClientes.push(clientData);
-            }
-            localStorage.setItem('saved_customers', JSON.stringify(savedClientes));
+    function resetModalForm() {
+      document.getElementById('qrForm').reset();
+      document.getElementById('agendamentoFields').style.display = 'none';
+      document.getElementById('camposRecebimento').style.display = 'none';
+      document.getElementById('agendarHorario').checked = false;
+      document.getElementById('troco').checked = false;
+      document.getElementById('levarMaquinaCartao').checked = false;
+      document.getElementById('aReceber').checked = false;
+      document.getElementById('nomeCaixaUid').value = '';
+      
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dateInput = document.getElementById('dataEntrega');
+      if (dateInput) {
+        dateInput.min = tomorrow.toISOString().split('T')[0];
+      }
+    }
 
-            // GERA QR CODE APENAS COM O UID
-            const qrContainer = document.getElementById('qrcode');
-            qrContainer.innerHTML = "";
-            new QRCode(qrContainer, {
-                text: clientData.uid, // <--- Apenas o UID aqui dentro
-                width: 200,
-                height: 200,
-                colorDark: "#4f46e5",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
+    // ---------------------------
+    // HELPERS
+    // ---------------------------
+    function gerarUUID() {
+      return crypto.randomUUID();
+    }
 
-            // UI Updates
-            document.getElementById('uid-display').innerText = `ID VINCULADO: ${clientData.uid}`;
-            document.getElementById('result-area').classList.remove('hidden');
-            document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
-            
-            const msg = document.getElementById('printing-msg');
-            msg.innerText = "Sincronizando Banco...";
-            setTimeout(() => {
-                msg.innerText = "Etiqueta Pronta!";
-                document.querySelector('.animate-ping').classList.add('hidden');
-            }, 1500);
-        };
+    function formatHorario(data, hora) {
+      if (!data || !hora) return null;
+      return `${data}T${hora}:00.000Z`;
+    }
 
-        function resetForm() {
-            document.getElementById('qrForm').reset();
-            document.getElementById('result-area').classList.add('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+    function formatarDataBR(data) {
+      if (!data) return '-';
+      const d = new Date(data);
+      if (isNaN(d.getTime())) return data;
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      return String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function getStatusClass(status) {
+      switch (status) {
+        case 'Pendente':
+          return 'status-pendente';
+        case 'Em Rota':
+          return 'status-em-rota';
+        case 'Entregue':
+          return 'status-entregue';
+        case 'Cancelado':
+          return 'status-cancelado';
+        default:
+          return 'status-pendente';
+      }
+    }
+
+    function setLoading(isLoading, text = 'Gerando QR Code...') {
+      const btn = document.getElementById('submitBtn');
+      if (isLoading) {
+        btn.disabled = true;
+        btn.classList.add('opacity-70', 'cursor-not-allowed');
+        btn.innerHTML = `
+          <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+          </svg>
+          SALVANDO...
+        `;
+      } else {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+        btn.innerHTML = `<i data-lucide="zap" class="w-5 h-5 fill-current"></i> GERAR QR CODE`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+    }
+
+    function salvarClienteLocal(cliente) {
+      const index = savedClientes.findIndex(
+        (c) => c.nome.toLowerCase() === cliente.nome.toLowerCase()
+      );
+
+      if (index === -1) {
+        savedClientes.push(cliente);
+      } else {
+        savedClientes[index] = cliente;
+      }
+
+      localStorage.setItem('saved_customers', JSON.stringify(savedClientes));
+    }
+
+    // ---------------------------
+    // AUTOCOMPLETE CAIXA
+    // ---------------------------
+    function showCaixas() {
+      const list = document.getElementById('caixas-suggestions');
+      if (list) list.classList.remove('hidden');
+      filterCaixas();
+    }
+
+    function filterCaixas() {
+      const input = document.getElementById('nomeCaixa');
+      if (!input) return;
+      const value = input.value.toLowerCase();
+      const list = document.getElementById('caixas-suggestions');
+      if (!list) return;
+      
+      const filtered = caixasLista.filter((c) => 
+        c.nome.toLowerCase().includes(value) || c.uid.toLowerCase().includes(value)
+      );
+
+      if (filtered.length === 0) {
+        list.classList.add('hidden');
+        return;
+      }
+
+      list.innerHTML = filtered
+        .map(
+          (c) => `
+          <li onclick="selectCaixa('${c.nome.replace(/'/g, "\\'")}', '${c.uid}')" 
+              class="p-3 md:p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-medium cursor-pointer text-gray-700 flex justify-between items-center">
+            <div>
+              <p class="text-gray-900 font-semibold">${escapeHtml(c.nome)}</p>
+              <p class="text-[10px] text-indigo-500 uppercase font-black tracking-wider">UID: ${c.uid}</p>
+            </div>
+            <i data-lucide="user" class="w-3 h-3 text-gray-300"></i>
+          </li>
+        `
+        )
+        .join('');
+
+      list.classList.remove('hidden');
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function selectCaixa(nome, uid) {
+      document.getElementById('nomeCaixa').value = nome;
+      document.getElementById('nomeCaixaUid').value = uid;
+      const suggestions = document.getElementById('caixas-suggestions');
+      if (suggestions) suggestions.classList.add('hidden');
+    }
+
+    // ---------------------------
+    // AUTOCOMPLETE CLIENTE
+    // ---------------------------
+    function showClientes() {
+      const list = document.getElementById('clientes-suggestions');
+      if (list) list.classList.remove('hidden');
+      filterClientes();
+    }
+
+    function filterClientes() {
+      const input = document.getElementById('cliente');
+      if (!input) return;
+      const value = input.value.toLowerCase();
+      const list = document.getElementById('clientes-suggestions');
+      if (!list) return;
+      
+      const filtered = savedClientes.filter((c) =>
+        c.nome.toLowerCase().includes(value)
+      );
+
+      if (filtered.length === 0) {
+        list.classList.add('hidden');
+        return;
+      }
+
+      list.innerHTML = filtered
+        .map(
+          (c) => `
+          <li onclick="selectCliente('${c.nome.replace(/'/g, "\\'")}')" class="p-3 md:p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-bold cursor-pointer text-gray-700 flex justify-between items-center">
+            <div>
+              <p class="text-gray-900">${escapeHtml(c.nome)}</p>
+              <p class="text-[10px] text-indigo-500 uppercase font-black tracking-wider">${escapeHtml(c.rua)}, ${escapeHtml(c.numero)}</p>
+            </div>
+            <i data-lucide="history" class="w-3 h-3 text-gray-300"></i>
+          </li>
+        `
+        )
+        .join('');
+
+      list.classList.remove('hidden');
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function selectCliente(nome) {
+      const client = savedClientes.find((c) => c.nome === nome);
+
+      if (client) {
+        document.getElementById('cliente').value = client.nome;
+        document.getElementById('rua').value = client.rua;
+        document.getElementById('bairro').value = client.bairro;
+        document.getElementById('numero').value = client.numero;
+        document.getElementById('telefone').value = client.telefone;
+        
+        // Preencher caixa se existir
+        if (client.nomeCaixa && client.caixaUid) {
+          document.getElementById('nomeCaixa').value = client.nomeCaixa;
+          document.getElementById('nomeCaixaUid').value = client.caixaUid;
+        } else if (client.nomeCaixa) {
+          document.getElementById('nomeCaixa').value = client.nomeCaixa;
         }
 
-        // Eventos Globais
-        document.addEventListener('click', (e) => {
-            if (e.target.id !== 'cliente') document.getElementById('clientes-suggestions').classList.add('hidden');
-            if (e.target.id !== 'bairro') document.getElementById('bairros-suggestions').classList.add('hidden');
+        document.getElementById('troco').checked = !!client.troco;
+        document.getElementById('levarMaquinaCartao').checked = !!client.levarMaquinaCartao;
+        
+        const aReceber = client.aReceber || false;
+        document.getElementById('aReceber').checked = aReceber;
+        const camposRecebimentoEl = document.getElementById('camposRecebimento');
+        if (camposRecebimentoEl) {
+          camposRecebimentoEl.style.display = aReceber ? 'block' : 'none';
+        }
+        
+        if (aReceber) {
+          document.getElementById('formaPagamento').value = client.formaPagamento || '';
+          document.getElementById('totalPedido').value = client.totalPedido || '';
+          document.getElementById('valorPagoCliente').value = client.valorPagoCliente || '';
+          document.getElementById('trocoEntregueMotorista').value = client.trocoEntregueMotorista || '';
+        }
+
+        if (client.horarioAgendado) {
+          document.getElementById('agendarHorario').checked = true;
+          const agendamentoFieldsEl = document.getElementById('agendamentoFields');
+          if (agendamentoFieldsEl) agendamentoFieldsEl.style.display = 'block';
+          if (client.dataAgendada) document.getElementById('dataEntrega').value = client.dataAgendada;
+          if (client.horaAgendada) document.getElementById('horaEntrega').value = client.horaAgendada;
+        } else {
+          document.getElementById('agendarHorario').checked = false;
+          const agendamentoFieldsEl = document.getElementById('agendamentoFields');
+          if (agendamentoFieldsEl) agendamentoFieldsEl.style.display = 'none';
+        }
+      }
+
+      const suggestions = document.getElementById('clientes-suggestions');
+      if (suggestions) suggestions.classList.add('hidden');
+    }
+
+    // ---------------------------
+    // AUTOCOMPLETE BAIRRO
+    // ---------------------------
+    function showBairros() {
+      const list = document.getElementById('bairros-suggestions');
+      if (list) list.classList.remove('hidden');
+      filterBairros();
+    }
+
+    function filterBairros() {
+      const input = document.getElementById('bairro');
+      if (!input) return;
+      const value = input.value.toLowerCase();
+      const list = document.getElementById('bairros-suggestions');
+      if (!list) return;
+      
+      const filtered = bairrosUnai.filter((b) => b.toLowerCase().includes(value));
+
+      list.innerHTML = filtered
+        .map(
+          (b) => `
+          <li onclick="selectBairro('${b.replace(/'/g, "\\'")}')" class="p-3 md:p-4 hover:bg-indigo-50 border-b border-gray-50 text-sm font-medium cursor-pointer text-gray-700">
+            ${escapeHtml(b)}
+          </li>
+        `
+        )
+        .join('');
+
+      if (filtered.length === 0) list.classList.add('hidden');
+      else list.classList.remove('hidden');
+    }
+
+    function selectBairro(val) {
+      document.getElementById('bairro').value = val;
+      const suggestions = document.getElementById('bairros-suggestions');
+      if (suggestions) suggestions.classList.add('hidden');
+    }
+
+    // ---------------------------
+    // LISTAGEM DA API
+    // ---------------------------
+    async function carregarPedidos() {
+      const tbody = document.getElementById('ordersTableBody');
+      const mobileContainer = document.getElementById('mobileOrdersContainer');
+
+      try {
+        tbody.innerHTML = `
+            <tr>
+            <td colspan="8" class="px-5 py-10 text-center text-gray-400 font-semibold">
+              Carregando pedidos...
+              </td>
+            </tr>
+        `;
+        
+        if (mobileContainer) {
+          mobileContainer.innerHTML = '<div class="text-center text-gray-400 py-10">Carregando pedidos...</div>';
+        }
+
+        const response = await fetch(API_URL, {
+          method: 'GET',
+          headers: {
+            accept: 'application/json'
+          }
         });
 
-        lucide.createIcons();
-    </script>
+        if (!response.ok) {
+          throw new Error('Erro ao buscar pedidos');
+        }
+
+        const pedidos = await response.json();
+
+        if (!pedidos || pedidos.length === 0) {
+          const emptyMsg = '<div class="text-center text-gray-400 py-10 font-semibold">Nenhum pedido encontrado.</div>';
+          tbody.innerHTML = `<tr><td colspan="8" class="px-5 py-10 text-center text-gray-400 font-semibold">Nenhum pedido encontrado.</td></tr>`;
+          if (mobileContainer) mobileContainer.innerHTML = emptyMsg;
+          return;
+        }
+
+        // Desktop table
+        tbody.innerHTML = pedidos.map((pedido) => {
+          const agendamento = pedido.dataAgendada && pedido.horaAgendada
+            ? `${escapeHtml(pedido.dataAgendada)} às ${escapeHtml(pedido.horaAgendada)}`
+            : '-';
+          
+          const temAReceber = pedido.totalPedido && pedido.totalPedido > 0;
+          const aReceberBadge = temAReceber ? `<span class="badge-a-receber" title="Valor a receber: R$ ${pedido.totalPedido}"><i data-lucide="dollar-sign" class="w-3 h-3"></i> A Receber</span>` : '';
+
+          const pagamento = `
+            <div class="space-y-1 text-xs">
+              <div>${pedido.troco ? 'Precisa de troco' : 'Não precisa de troco'}</div>
+              <div>${pedido.levarMaquinaCartao ? 'Levar maquininha' : 'Sem maquininha'}</div>
+              ${pedido.formaPagamento ? `<div>Forma: ${escapeHtml(pedido.formaPagamento)}</div>` : ''}
+              ${pedido.totalPedido ? `<div>Total: R$ ${pedido.totalPedido}</div>` : ''}
+              ${pedido.valorPagoCliente ? `<div>Cliente pagou: R$ ${pedido.valorPagoCliente}</div>` : ''}
+              ${pedido.trocoEntregueMotorista ? `<div>Troco motorista: R$ ${pedido.trocoEntregueMotorista}</div>` : ''}
+            </div>
+          `;
+
+          const motoristaNome = pedido.motorista?.username || pedido.motoristaUid || '-';
+          const caixaInfo = pedido.nomeCaixa ? (pedido.caixaUid ? `${pedido.nomeCaixa} (${pedido.caixaUid})` : pedido.nomeCaixa) : '-';
+
+          return `
+            <tr class="table-hover">
+              <td class="px-4 md:px-5 py-3 md:py-4 align-top">
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <p class="font-bold text-gray-900 text-sm">${escapeHtml(pedido.nome || '-')}</p>
+                    ${aReceberBadge}
+                  </div>
+                  <p class="text-xs text-gray-400 font-mono break-all">${escapeHtml(pedido.uid || '-')}</p>
+                </div>
+                </td>
+              <td class="px-4 md:px-5 py-3 md:py-4 align-top">
+                <div class="space-y-1">
+                  <p class="font-semibold text-gray-800 text-sm">
+                    ${escapeHtml(pedido.rua || '-')}, ${escapeHtml(pedido.numero || '-')}
+                  </p>
+                  <p class="text-xs text-gray-500">${escapeHtml(pedido.bairro || '-')}</p>
+                </div>
+                </td>
+              <td class="px-4 md:px-5 py-3 md:py-4 align-top">
+                <div class="space-y-1">
+                  <p class="font-semibold text-gray-800 text-sm">${escapeHtml(pedido.telefone || '-')}</p>
+                  <p class="text-xs text-gray-500">Caixa: ${escapeHtml(caixaInfo)}</p>
+                </div>
+                </td>
+              <td class="px-4 md:px-5 py-3 md:py-4 align-top">
+                <div class="space-y-1">
+                  <p class="font-medium text-gray-800 text-sm">${agendamento}</p>
+                  <p class="text-xs text-gray-500">Criado: ${formatarDataBR(pedido.createdAt)}</p>
+                </div>
+                </td>
+              <td class="px-4 md:px-5 py-3 md:py-4 align-top text-gray-700 text-sm">
+                ${pagamento}
+                </td>
+              <td class="px-4 md:px-5 py-3 md:py-4 align-top">
+                <span class="font-medium text-sm text-gray-700">${escapeHtml(motoristaNome)}</span>
+                </td>
+              <td class="px-4 md:px-5 py-3 md:py-4 align-top">
+                <span class="badge-status ${getStatusClass(pedido.status)} text-xs">
+                  ${escapeHtml(pedido.status || 'Pendente')}
+                </span>
+                </td>
+              <td class="px-4 md:px-5 py-3 md:py-4 align-top">
+                <div class="flex justify-end gap-2 flex-wrap">
+                  <button
+                    onclick="openQrModal('${pedido.uid}')"
+                    class="px-2 md:px-3 py-1.5 md:py-2 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors"
+                  >
+                    QR
+                  </button>
+                  <button
+                    onclick="excluirPedido('${pedido.uid}')"
+                    class="px-2 md:px-3 py-1.5 md:py-2 bg-red-50 text-red-700 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors"
+                  >
+                    Excluir
+                  </button>
+                </div>
+                </td>
+              </tr>
+          `;
+        }).join('');
+
+        // Mobile cards
+        if (mobileContainer) {
+          mobileContainer.innerHTML = pedidos.map((pedido) => {
+            const agendamento = pedido.dataAgendada && pedido.horaAgendada
+              ? `${pedido.dataAgendada} ${pedido.horaAgendada}`
+              : 'Não agendado';
+            
+            const temAReceber = pedido.totalPedido && pedido.totalPedido > 0;
+            const aReceberBadge = temAReceber ? `<span class="badge-a-receber inline-block ml-2" title="Valor a receber: R$ ${pedido.totalPedido}"><i data-lucide="dollar-sign" class="w-3 h-3 inline"></i> A Receber</span>` : '';
+            
+            let infoPagamento = `${pedido.troco ? 'Precisa troco' : 'Sem troco'} | ${pedido.levarMaquinaCartao ? 'Com máquina' : 'Sem máquina'}`;
+            if (pedido.formaPagamento) infoPagamento += ` | ${pedido.formaPagamento}`;
+            if (pedido.totalPedido) infoPagamento += ` | Total: R$ ${pedido.totalPedido}`;
+            if (pedido.valorPagoCliente) infoPagamento += ` | Pagou: R$ ${pedido.valorPagoCliente}`;
+            if (pedido.trocoEntregueMotorista) infoPagamento += ` | Troco motorista: R$ ${pedido.trocoEntregueMotorista}`;
+            
+            const motoristaNome = pedido.motorista?.username || pedido.motoristaUid || '-';
+            const caixaInfo = pedido.nomeCaixa ? (pedido.caixaUid ? `${pedido.nomeCaixa} (${pedido.caixaUid})` : pedido.nomeCaixa) : '-';
+            
+            return `
+              <div class="order-card">
+                <div class="card-field">
+                  <span class="card-label">Cliente</span>
+                  <span class="card-value font-bold">${escapeHtml(pedido.nome || '-')} ${aReceberBadge}</span>
+                </div>
+                <div class="card-field">
+                  <span class="card-label">Endereço</span>
+                  <span class="card-value">${escapeHtml(pedido.rua || '-')}, ${escapeHtml(pedido.numero || '-')} - ${escapeHtml(pedido.bairro || '-')}</span>
+                </div>
+                <div class="card-field">
+                  <span class="card-label">Telefone</span>
+                  <span class="card-value">${escapeHtml(pedido.telefone || '-')}</span>
+                </div>
+                <div class="card-field">
+                  <span class="card-label">Caixa</span>
+                  <span class="card-value">${escapeHtml(caixaInfo)}</span>
+                </div>
+                <div class="card-field">
+                  <span class="card-label">Agendamento</span>
+                  <span class="card-value">${agendamento}</span>
+                </div>
+                <div class="card-field">
+                  <span class="card-label">Pagamento</span>
+                  <span class="card-value">${infoPagamento}</span>
+                </div>
+                <div class="card-field">
+                  <span class="card-label">Motorista</span>
+                  <span class="card-value">${escapeHtml(motoristaNome)}</span>
+                </div>
+                <div class="card-field">
+                  <span class="card-label">Status</span>
+                  <span class="card-value"><span class="badge-status ${getStatusClass(pedido.status)}">${escapeHtml(pedido.status || 'Pendente')}</span></span>
+                </div>
+                <div class="flex gap-2 mt-3 pt-2 border-t border-gray-100">
+                  <button onclick="openQrModal('${pedido.uid}')" class="flex-1 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold hover:bg-indigo-100">QR Code</button>
+                  <button onclick="excluirPedido('${pedido.uid}')" class="flex-1 px-3 py-2 bg-red-50 text-red-700 rounded-xl text-xs font-bold hover:bg-red-100">Excluir</button>
+                </div>
+                <div class="mt-2 pt-2 border-t border-gray-50">
+                  <p class="text-[10px] text-gray-400 font-mono break-all">UID: ${escapeHtml(pedido.uid || '-')}</p>
+                  <p class="text-[10px] text-gray-400 mt-1">Criado: ${formatarDataBR(pedido.createdAt)}</p>
+                </div>
+              </div>
+            `;
+          }).join('');
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+      } catch (error) {
+        console.error(error);
+        const errorMsg = '<div class="text-center text-red-500 py-10 font-semibold">Erro ao carregar pedidos da API.</div>';
+        tbody.innerHTML = `<tr><td colspan="8" class="px-5 py-10 text-center text-red-500 font-semibold">Erro ao carregar pedidos da API.</td></tr>`;
+        if (mobileContainer) mobileContainer.innerHTML = errorMsg;
+      }
+    }
+
+    // ---------------------------
+    // DELETE
+    // ---------------------------
+    async function excluirPedido(uid) {
+      const confirmar = confirm(`Deseja realmente excluir o pedido?\n\nUID: ${uid}`);
+      if (!confirmar) return;
+
+      try {
+        const response = await fetch(`${API_URL}/${uid}`, {
+          method: 'DELETE',
+          headers: {
+            accept: '*/*'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao excluir pedido');
+        }
+
+        alert('Pedido excluído com sucesso.');
+        await carregarPedidos();
+      } catch (error) {
+        console.error(error);
+        alert('Erro ao excluir pedido.');
+      }
+    }
+
+    // ---------------------------
+    // SUBMIT -> API
+    // ---------------------------
+    document.getElementById('qrForm').onsubmit = async (e) => {
+      e.preventDefault();
+
+      try {
+        setLoading(true);
+
+        const nome = document.getElementById('cliente').value.trim();
+        const rua = document.getElementById('rua').value.trim();
+        const bairro = document.getElementById('bairro').value.trim();
+        const numero = document.getElementById('numero').value.trim();
+        const telefone = document.getElementById('telefone').value.trim();
+        const nomeCaixa = document.getElementById('nomeCaixa').value.trim();
+        const caixaUid = document.getElementById('nomeCaixaUid').value.trim() || null;
+
+        const aReceber = document.getElementById('aReceber').checked;
+        
+        let formaPagamento = null;
+        let totalPedido = null;
+        let valorPagoCliente = null;
+        let trocoEntregueMotorista = null;
+        
+        if (aReceber) {
+          formaPagamento = document.getElementById('formaPagamento').value.trim() || null;
+          totalPedido = document.getElementById('totalPedido').value ? parseFloat(document.getElementById('totalPedido').value) : null;
+          valorPagoCliente = document.getElementById('valorPagoCliente').value ? parseFloat(document.getElementById('valorPagoCliente').value) : null;
+          trocoEntregueMotorista = document.getElementById('trocoEntregueMotorista').value ? parseFloat(document.getElementById('trocoEntregueMotorista').value) : null;
+        }
+
+        const agendar = document.getElementById('agendarHorario').checked;
+        const troco = document.getElementById('troco').checked;
+        const levarMaquinaCartao = document.getElementById('levarMaquinaCartao').checked;
+
+        let horario = null;
+        let dataAgendada = null;
+        let horaAgendada = null;
+
+        if (agendar) {
+          dataAgendada = document.getElementById('dataEntrega').value;
+          horaAgendada = document.getElementById('horaEntrega').value;
+
+          if (dataAgendada && horaAgendada) {
+            horario = formatHorario(dataAgendada, horaAgendada);
+          }
+        }
+
+        if (!nome || !rua || !bairro || !numero || !telefone) {
+          alert('Por favor, preencha todos os campos obrigatórios (*)');
+          setLoading(false);
+          return;
+        }
+
+        const uid = gerarUUID();
+
+        const payload = {
+          uid,
+          nome,
+          rua,
+          bairro,
+          numero,
+          telefone,
+          horario,
+          dataAgendada,
+          horaAgendada,
+          nomeCaixa: nomeCaixa || null,
+          caixaUid: caixaUid,
+          troco,
+          levarMaquinaCartao,
+          aReceber,
+          formaPagamento,
+          totalPedido,
+          valorPagoCliente,
+          trocoEntregueMotorista
+        };
+
+        console.log('Enviando pedido:', payload);
+
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            accept: 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Erro da API:', errorText);
+          throw new Error(`Erro ao salvar pedido (${response.status})`);
+        }
+
+        const pedidoCriado = await response.json();
+
+        salvarClienteLocal({
+          nome,
+          rua,
+          bairro,
+          numero,
+          telefone,
+          nomeCaixa: nomeCaixa || '',
+          caixaUid: caixaUid,
+          troco,
+          levarMaquinaCartao,
+          horarioAgendado: agendar,
+          dataAgendada,
+          horaAgendada,
+          aReceber,
+          formaPagamento,
+          totalPedido,
+          valorPagoCliente,
+          trocoEntregueMotorista
+        });
+
+        openQrModal(pedidoCriado.uid);
+        await carregarPedidos();
+        closeModal();
+
+      } catch (error) {
+        console.error(error);
+        alert('Erro ao criar pedido. Verifique se a API está rodando em http://localhost:3004');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // ---------------------------
+    // FECHAR SUGESTÕES
+    // ---------------------------
+    document.addEventListener('click', (e) => {
+      if (e.target.id !== 'cliente') {
+        const clientSuggestions = document.getElementById('clientes-suggestions');
+        if (clientSuggestions) clientSuggestions.classList.add('hidden');
+      }
+      if (e.target.id !== 'bairro') {
+        const bairroSuggestions = document.getElementById('bairros-suggestions');
+        if (bairroSuggestions) bairroSuggestions.classList.add('hidden');
+      }
+      if (e.target.id !== 'nomeCaixa') {
+        const caixaSuggestions = document.getElementById('caixas-suggestions');
+        if (caixaSuggestions) caixaSuggestions.classList.add('hidden');
+      }
+    });
+
+    // ---------------------------
+    // INIT
+    // ---------------------------
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateInput = document.getElementById('dataEntrega');
+    if (dateInput) {
+      dateInput.min = tomorrow.toISOString().split('T')[0];
+    }
+
+    carregarPedidos();
+  </script>
 </body>
 </html>

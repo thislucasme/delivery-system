@@ -1,180 +1,639 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoramento - Logística Unaí</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; }
-        .card-shadow { box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05); }
-        .custom-scroll::-webkit-scrollbar { width: 5px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        .dot-waiting { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monitoramento - Logística</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(99,102,241,0.08), transparent 25%),
+        radial-gradient(circle at top right, rgba(16,185,129,0.06), transparent 25%),
+        #f8fafc;
+      color: #0f172a;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+    }
+
+    .card-shadow {
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .soft-hover {
+      transition: all 0.22s ease;
+    }
+
+    .soft-hover:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 999px;
+    }
+
+    .pulse-dot {
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.15); opacity: 0.5; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+      background-size: 400% 100%;
+      animation: shine 1.4s ease infinite;
+    }
+
+    @keyframes shine {
+      0% { background-position: 100% 50%; }
+      100% { background-position: 0 50%; }
+    }
+  </style>
 </head>
 <body class="min-h-screen">
 
-    <header class="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <div class="max-w-[1600px] mx-auto px-6 h-20 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <div class="bg-indigo-600 p-2.5 rounded-2xl shadow-lg shadow-indigo-100">
-                    <i data-lucide="layout-dashboard" class="text-white w-6 h-6"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-black tracking-tight">Logística Unaí</h1>
-                    <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Painel do Gerente</p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-4">
-                <div class="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-2 flex items-center gap-3">
-                    <i data-lucide="calendar" class="w-4 h-4 text-gray-400"></i>
-                    <input type="date" id="data-filtro" class="bg-transparent text-sm font-bold outline-none" onchange="atualizarPainel()">
-                </div>
-                <div id="hoje-badge" class="bg-green-100 text-green-600 text-[10px] font-black px-3 py-1.5 rounded-full uppercase">Hoje</div>
-            </div>
-        </div>
-    </header>
-
-    <main class="max-w-[1600px] mx-auto p-8">
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <div class="bg-white p-6 rounded-[2.5rem] border border-gray-100 card-shadow flex items-center justify-between border-l-8 border-l-rose-500">
-                <div>
-                    <p class="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Aguardando Coleta</p>
-                    <h3 class="text-4xl font-black text-rose-500" id="count-espera">3</h3>
-                </div>
-                <div class="p-4 bg-rose-50 rounded-2xl text-rose-500">
-                    <i data-lucide="package-search" class="w-8 h-8"></i>
-                </div>
-            </div>
-            <div class="bg-white p-6 rounded-[2.5rem] border border-gray-100 card-shadow flex items-center justify-between border-l-8 border-l-amber-500">
-                <div>
-                    <p class="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Em Rota</p>
-                    <h3 class="text-4xl font-black text-amber-500" id="count-andamento">4</h3>
-                </div>
-                <div class="p-4 bg-amber-50 rounded-2xl text-amber-500">
-                    <i data-lucide="truck" class="w-8 h-8"></i>
-                </div>
-            </div>
-            <div class="bg-white p-6 rounded-[2.5rem] border border-gray-100 card-shadow flex items-center justify-between border-l-8 border-l-green-600">
-                <div>
-                    <p class="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Concluídas</p>
-                    <h3 class="text-4xl font-black text-green-600" id="count-entregues">2</h3>
-                </div>
-                <div class="p-4 bg-green-50 rounded-2xl text-green-600">
-                    <i data-lucide="check-circle-2" class="w-8 h-8"></i>
-                </div>
-            </div>
+  <!-- HEADER -->
+  <header class="sticky top-0 z-50 border-b border-slate-200/70 glass">
+    <div class="max-w-[1700px] mx-auto px-4 md:px-6 py-4 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="bg-indigo-600 p-3 rounded-2xl shadow-lg shadow-indigo-200">
+          <i data-lucide="layout-dashboard" class="text-white w-6 h-6"></i>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            
-            <div class="lg:col-span-1">
-                <div class="flex items-center gap-2 mb-6">
-                    <div class="w-2 h-2 rounded-full bg-rose-500 dot-waiting"></div>
-                    <h2 class="font-black text-gray-900 uppercase text-xs tracking-widest">Fila de Saída</h2>
-                </div>
-                
-                <div id="fila-espera" class="space-y-4">
-                    </div>
-            </div>
-
-            <div class="lg:col-span-3">
-                <div class="flex items-center gap-2 mb-6">
-                    <i data-lucide="users" class="w-4 h-4 text-indigo-600"></i>
-                    <h2 class="font-black text-gray-900 uppercase text-xs tracking-widest">Equipe em Campo</h2>
-                </div>
-                <div id="motoristas-grid" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    </div>
-            </div>
-
+        <div>
+          <h1 class="text-xl md:text-2xl font-black tracking-tight">Logística</h1>
+          <p class="text-xs font-bold text-indigo-600 uppercase tracking-[0.2em]">
+            Painel operacional do gerente
+          </p>
         </div>
-    </main>
+      </div>
 
-    <script>
-        const semMotorista = [
-            { id: 201, cliente: "Supermercado Unaí", bairro: "Politécnica", hora: "14:45", prioridade: "Alta" },
-            { id: 202, cliente: "Loja do Produtor", bairro: "Área Rural", hora: "15:10", prioridade: "Normal" },
-            { id: 203, cliente: "Drogaria Minas", bairro: "Centro", hora: "15:20", prioridade: "Urgente" }
-        ];
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="bg-white border border-slate-200 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-sm">
+          <i data-lucide="calendar-days" class="w-4 h-4 text-slate-400"></i>
+          <input
+            type="date"
+            id="data-filtro"
+            class="bg-transparent text-sm font-semibold outline-none text-slate-700"
+            onchange="atualizarPainel()"
+          />
+        </div>
 
-        const motoristas = [
-            { id: 1, nome: "Carlos Oliveira", veiculo: "MOTO 01 • ABC-1234", entregas: [
-                { cliente: "Mercado Central", status: "entregue", hora: "10:30", cor: "bg-green-500" },
-                { cliente: "Farmácia Popular", status: "andamento", hora: "14:15", cor: "bg-amber-400" }
-            ]},
-            { id: 3, nome: "Ricardo Santos", veiculo: "VAN ENTREGAS • KJH-4432", entregas: [
-                { cliente: "Hospital Municipal", status: "entregue", hora: "09:00", cor: "bg-green-500" },
-                { cliente: "Supermercado BH", status: "andamento", hora: "16:45", cor: "bg-amber-400" },
-                { cliente: "Escritório Contábil", status: "andamento", hora: "17:00", cor: "bg-amber-400" }
-            ]}
-        ];
+        <div class="bg-white border border-slate-200 rounded-2xl px-4 py-2 flex items-center gap-3 shadow-sm min-w-[260px]">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
+          <input
+            type="text"
+            id="busca-geral"
+            placeholder="Buscar motorista, cliente ou bairro..."
+            class="bg-transparent text-sm font-medium outline-none text-slate-700 w-full"
+            oninput="aplicarFiltroLocal()"
+          />
+        </div>
 
-        function atualizarPainel() {
-            // Render Fila de Espera
-            const fila = document.getElementById('fila-espera');
-            fila.innerHTML = semMotorista.map(e => `
-                <div class="bg-white p-5 rounded-3xl border border-rose-100 card-shadow border-l-4 border-l-rose-500 group hover:scale-[1.02] transition-transform cursor-pointer">
-                    <div class="flex justify-between items-start mb-2">
-                        <p class="text-sm font-black text-gray-800">${e.cliente}</p>
-                        <span class="text-[9px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md uppercase">${e.prioridade}</span>
+        <button
+          onclick="atualizarPainel()"
+          class="bg-slate-900 text-white px-4 py-2 rounded-2xl text-sm font-bold hover:opacity-90 transition"
+        >
+          Atualizar
+        </button>
+
+        <div id="hoje-badge" class="bg-emerald-100 text-emerald-700 text-xs font-black px-3 py-2 rounded-full uppercase">
+          Hoje
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1700px] mx-auto p-4 md:p-8">
+
+    <!-- STATUS BAR -->
+    <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div>
+        <h2 class="text-lg md:text-xl font-extrabold tracking-tight">Visão geral das entregas</h2>
+        <p class="text-sm text-slate-500 font-medium">
+          Acompanhe pedidos aguardando, em rota, concluídos e cancelados por motorista.
+        </p>
+      </div>
+
+      <div id="status-operacao" class="text-sm font-semibold text-slate-500 flex items-center gap-2">
+        <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-dot"></div>
+        Sistema online
+      </div>
+    </div>
+
+    <!-- RESUMO -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5 mb-10">
+      <div class="bg-white rounded-3xl border border-rose-100 p-6 card-shadow soft-hover">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Aguardando Coleta</p>
+            <h3 class="text-4xl font-black text-rose-500" id="count-espera">0</h3>
+            <p class="text-sm text-slate-500 mt-2">Sem motorista vinculado</p>
+          </div>
+          <div class="bg-rose-50 text-rose-500 p-4 rounded-2xl">
+            <i data-lucide="package-search" class="w-7 h-7"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl border border-blue-100 p-6 card-shadow soft-hover">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Em Rota</p>
+            <h3 class="text-4xl font-black text-blue-500" id="count-andamento">0</h3>
+            <p class="text-sm text-slate-500 mt-2">Pedidos em andamento</p>
+          </div>
+          <div class="bg-blue-50 text-blue-500 p-4 rounded-2xl">
+            <i data-lucide="truck" class="w-7 h-7"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl border border-emerald-100 p-6 card-shadow soft-hover">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Concluídas</p>
+            <h3 class="text-4xl font-black text-emerald-600" id="count-entregues">0</h3>
+            <p class="text-sm text-slate-500 mt-2">Pedidos finalizados</p>
+          </div>
+          <div class="bg-emerald-50 text-emerald-600 p-4 rounded-2xl">
+            <i data-lucide="check-circle-2" class="w-7 h-7"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl border border-red-100 p-6 card-shadow soft-hover">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Cancelados</p>
+            <h3 class="text-4xl font-black text-red-500" id="count-cancelados">0</h3>
+            <p class="text-sm text-slate-500 mt-2">Pedidos cancelados</p>
+          </div>
+          <div class="bg-red-50 text-red-500 p-4 rounded-2xl">
+            <i data-lucide="x-circle" class="w-7 h-7"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl border border-slate-200 p-6 card-shadow soft-hover">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Total</p>
+            <h3 class="text-4xl font-black text-slate-900" id="count-total">0</h3>
+            <p class="text-sm text-slate-500 mt-2">Pedidos no período</p>
+          </div>
+          <div class="bg-slate-100 text-slate-700 p-4 rounded-2xl">
+            <i data-lucide="boxes" class="w-7 h-7"></i>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GRID -->
+    <section class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+
+      <!-- FILA -->
+      <aside class="xl:col-span-4">
+        <div class="flex items-center justify-between mb-5">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-rose-500 pulse-dot"></div>
+            <h2 class="font-black text-slate-900 uppercase text-xs tracking-[0.2em]">Fila de Saída</h2>
+          </div>
+
+          <span id="fila-count-badge" class="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-1 rounded-full">
+            0 pedidos
+          </span>
+        </div>
+
+        <div id="fila-espera" class="space-y-4"></div>
+      </aside>
+
+      <!-- MOTORISTAS -->
+      <section class="xl:col-span-8">
+        <div class="flex items-center justify-between mb-5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="users" class="w-4 h-4 text-indigo-600"></i>
+            <h2 class="font-black text-slate-900 uppercase text-xs tracking-[0.2em]">Equipe em Campo</h2>
+          </div>
+
+          <span id="motoristas-count-badge" class="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-1 rounded-full">
+            0 motoristas
+          </span>
+        </div>
+
+        <div id="motoristas-grid" class="grid grid-cols-1 2xl:grid-cols-2 gap-6"></div>
+      </section>
+
+    </section>
+  </main>
+
+  <script>
+    const API_URL = "http://localhost:3004/orders/dashboard";
+
+    let dashboardData = {
+      resumo: {},
+      filaEspera: [],
+      motoristas: []
+    };
+
+    function formatarDataISO(date = new Date()) {
+      return date.toISOString().split("T")[0];
+    }
+
+    function isHoje(data) {
+      return data === formatarDataISO();
+    }
+
+    function atualizarBadgeHoje() {
+      const dataSelecionada = document.getElementById("data-filtro").value;
+      const badge = document.getElementById("hoje-badge");
+
+      if (isHoje(dataSelecionada)) {
+        badge.textContent = "Hoje";
+        badge.className = "bg-emerald-100 text-emerald-700 text-xs font-black px-3 py-2 rounded-full uppercase";
+      } else {
+        badge.textContent = "Filtro ativo";
+        badge.className = "bg-indigo-100 text-indigo-700 text-xs font-black px-3 py-2 rounded-full uppercase";
+      }
+    }
+
+    function formatarHorario(isoString) {
+      if (!isoString) return "--:--";
+      try {
+        return new Date(isoString).toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+      } catch {
+        return "--:--";
+      }
+    }
+
+    function getStatusStyle(status) {
+      switch (status) {
+        case "Entregue":
+          return {
+            badge: "bg-emerald-100 text-emerald-700",
+            dot: "bg-emerald-500",
+            border: "border-emerald-100",
+            label: "Entregue"
+          };
+        case "Em Rota":
+          return {
+            badge: "bg-blue-100 text-blue-700",
+            dot: "bg-blue-500",
+            border: "border-blue-100",
+            label: "Em Rota"
+          };
+        case "Cancelado":
+          return {
+            badge: "bg-red-100 text-red-700",
+            dot: "bg-red-500",
+            border: "border-red-100",
+            label: "Cancelado"
+          };
+        case "Pendente":
+        default:
+          return {
+            badge: "bg-amber-100 text-amber-700",
+            dot: "bg-amber-400",
+            border: "border-amber-100",
+            label: "Pendente"
+          };
+      }
+    }
+
+    function setLoading() {
+      document.getElementById("fila-espera").innerHTML = `
+        <div class="bg-white rounded-3xl p-5 border border-slate-200 card-shadow">
+          <div class="h-4 w-40 rounded skeleton mb-3"></div>
+          <div class="h-3 w-28 rounded skeleton mb-2"></div>
+          <div class="h-3 w-20 rounded skeleton"></div>
+        </div>
+        <div class="bg-white rounded-3xl p-5 border border-slate-200 card-shadow">
+          <div class="h-4 w-32 rounded skeleton mb-3"></div>
+          <div class="h-3 w-24 rounded skeleton mb-2"></div>
+          <div class="h-3 w-16 rounded skeleton"></div>
+        </div>
+      `;
+
+      document.getElementById("motoristas-grid").innerHTML = `
+        <div class="bg-white rounded-3xl p-6 border border-slate-200 card-shadow">
+          <div class="h-5 w-40 rounded skeleton mb-4"></div>
+          <div class="h-4 w-32 rounded skeleton mb-6"></div>
+          <div class="space-y-3">
+            <div class="h-12 rounded-2xl skeleton"></div>
+            <div class="h-12 rounded-2xl skeleton"></div>
+          </div>
+        </div>
+        <div class="bg-white rounded-3xl p-6 border border-slate-200 card-shadow">
+          <div class="h-5 w-36 rounded skeleton mb-4"></div>
+          <div class="h-4 w-28 rounded skeleton mb-6"></div>
+          <div class="space-y-3">
+            <div class="h-12 rounded-2xl skeleton"></div>
+            <div class="h-12 rounded-2xl skeleton"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderResumo(resumo) {
+      document.getElementById("count-espera").innerText = resumo.aguardandoColeta ?? 0;
+      document.getElementById("count-andamento").innerText = resumo.emRota ?? 0;
+      document.getElementById("count-entregues").innerText = resumo.concluidas ?? 0;
+      document.getElementById("count-cancelados").innerText = resumo.cancelados ?? 0;
+      document.getElementById("count-total").innerText = resumo.total ?? 0;
+    }
+
+    function renderFila(filaEspera) {
+      const fila = document.getElementById("fila-espera");
+      document.getElementById("fila-count-badge").textContent = `${filaEspera.length} pedido(s)`;
+
+      if (!filaEspera.length) {
+        fila.innerHTML = `
+          <div class="bg-white rounded-3xl border border-slate-200 p-8 card-shadow text-center">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+              <i data-lucide="check-check" class="w-7 h-7"></i>
+            </div>
+            <h3 class="font-extrabold text-slate-800 mb-1">Fila vazia</h3>
+            <p class="text-sm text-slate-500">Nenhum pedido aguardando motorista nesta data.</p>
+          </div>
+        `;
+        return;
+      }
+
+      fila.innerHTML = filaEspera.map((e, index) => `
+        <div class="bg-white p-5 rounded-3xl border border-rose-100 card-shadow soft-hover border-l-[6px] border-l-rose-500">
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-[0.15em] mb-1">Pedido #${index + 1}</p>
+              <h3 class="text-base font-black text-slate-900 leading-tight">${e.cliente || "Cliente não informado"}</h3>
+            </div>
+
+            <span class="text-[10px] font-black text-rose-600 bg-rose-50 px-3 py-1 rounded-full uppercase">
+              Aguardando
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 gap-2 text-sm">
+            <div class="flex items-center gap-2 text-slate-600 font-semibold">
+              <i data-lucide="map-pin" class="w-4 h-4 text-slate-400"></i>
+              <span>${e.bairro || "Bairro não informado"}</span>
+            </div>
+
+            <div class="flex items-center gap-2 text-slate-500 font-medium">
+              <i data-lucide="hash" class="w-4 h-4 text-slate-400"></i>
+              <span class="truncate">${e.id}</span>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderMotoristas(motoristas) {
+      const grid = document.getElementById("motoristas-grid");
+      document.getElementById("motoristas-count-badge").textContent = `${motoristas.length} motorista(s)`;
+
+      if (!motoristas.length) {
+        grid.innerHTML = `
+          <div class="xl:col-span-2 bg-white rounded-3xl border border-slate-200 p-10 card-shadow text-center">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center mb-4">
+              <i data-lucide="truck" class="w-8 h-8"></i>
+            </div>
+            <h3 class="font-extrabold text-slate-800 mb-1">Sem motoristas ativos</h3>
+            <p class="text-sm text-slate-500">Nenhuma entrega vinculada a motoristas nesta data.</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = motoristas.map((m) => {
+        const resumo = m.resumo || {};
+        const entregas = m.entregas || [];
+
+        return `
+          <div class="bg-white rounded-[2rem] card-shadow border border-slate-200 overflow-hidden soft-hover">
+            <div class="p-6 border-b border-slate-100 bg-slate-50/70">
+              <div class="flex flex-col gap-5">
+                <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-lg">
+                      ${(m.nome || "?").charAt(0).toUpperCase()}
                     </div>
-                    <div class="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase">
-                        <span><i data-lucide="map-pin" class="w-3 h-3 inline mr-1"></i>${e.bairro}</span>
-                        <span>${e.hora}</span>
+                    <div>
+                      <h3 class="font-black text-slate-900 text-lg">${m.nome || "Motorista"}</h3>
+                      <p class="text-xs font-bold text-slate-400 uppercase tracking-[0.15em]">
+                        ${m.veiculo || "Veículo não informado"}
+                      </p>
                     </div>
+                  </div>
+
+                  <div class=" text-black px-4 py-2 rounded-2xl">
+                    <p class="text-[10px] uppercase tracking-[0.18em] font-bold opacity-70">Total do motorista</p>
+                    <p class="text-xl font-black">${resumo.total ?? entregas.length}</p>
+                  </div>
                 </div>
-            `).join('');
 
-            // Render Motoristas
-            const grid = document.getElementById('motoristas-grid');
-            grid.innerHTML = motoristas.map(m => {
-                const pendentes = m.entregas.filter(e => e.status === 'andamento').length;
-                const ok = m.entregas.filter(e => e.status === 'entregue').length;
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div class="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+                    <p class="text-[10px] uppercase font-black tracking-[0.18em] text-amber-700">Pendentes</p>
+                    <p class="text-2xl font-black text-amber-700">${resumo.pendentes ?? 0}</p>
+                  </div>
+                  <div class="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+                    <p class="text-[10px] uppercase font-black tracking-[0.18em] text-blue-700">Em rota</p>
+                    <p class="text-2xl font-black text-blue-700">${resumo.emRota ?? 0}</p>
+                  </div>
+                  <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+                    <p class="text-[10px] uppercase font-black tracking-[0.18em] text-emerald-700">Entregues</p>
+                    <p class="text-2xl font-black text-emerald-700">${resumo.entregues ?? 0}</p>
+                  </div>
+                  <div class="rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
+                    <p class="text-[10px] uppercase font-black tracking-[0.18em] text-red-700">Cancelados</p>
+                    <p class="text-2xl font-black text-red-700">${resumo.cancelados ?? 0}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                return `
-                    <div class="bg-white rounded-[2.5rem] card-shadow border border-gray-100 flex flex-col overflow-hidden">
-                        <div class="p-6 bg-gray-50/50 border-b border-gray-100 flex justify-between items-start">
-                            <div>
-                                <h3 class="font-black text-gray-900">${m.nome}</h3>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase">${m.veiculo}</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <span class="bg-amber-100 text-amber-700 text-[9px] font-black px-2 py-1 rounded-lg uppercase">${pendentes} Faltam</span>
-                                <span class="bg-green-100 text-green-700 text-[9px] font-black px-2 py-1 rounded-lg uppercase">${ok} OK</span>
-                            </div>
-                        </div>
-                        
-                        <div class="p-6 space-y-4 flex-1">
-                            ${m.entregas.map(e => `
-                                <div class="flex items-center justify-between border-b border-gray-50 pb-3 last:border-0">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-1.5 h-6 rounded-full ${e.cor}"></div>
-                                        <p class="text-sm font-bold text-gray-800">${e.cliente}</p>
-                                    </div>
-                                    <span class="text-[10px] font-black text-gray-300 uppercase">${e.hora}</span>
+            <div class="p-6">
+              ${
+                !entregas.length
+                  ? `
+                    <div class="border border-dashed border-slate-200 rounded-2xl p-6 text-center">
+                      <p class="text-sm font-semibold text-slate-500">Nenhuma entrega vinculada.</p>
+                    </div>
+                  `
+                  : `
+                    <div class="space-y-3 max-h-[520px] overflow-y-auto custom-scroll pr-1">
+                      ${entregas.map((e, index) => {
+                        const statusStyle = getStatusStyle(e.status);
+
+                        return `
+                          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 rounded-2xl border ${statusStyle.border} px-4 py-4 hover:bg-slate-50 transition">
+                            <div class="flex items-center gap-3 min-w-0">
+                              <div class="w-2 h-14 rounded-full ${statusStyle.dot}"></div>
+                              <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                  <p class="text-sm font-bold text-slate-800 truncate">${e.cliente || "Cliente não informado"}</p>
+                                  <span class="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-1 rounded-full uppercase">
+                                    #${index + 1}
+                                  </span>
                                 </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            }).join('');
 
-            // Atualiza Contadores
-            document.getElementById('count-espera').innerText = semMotorista.length;
-            
-            lucide.createIcons();
+                                <div class="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500 font-semibold">
+                                  <span class="flex items-center gap-1">
+                                    <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                                    ${e.bairro || "Bairro não informado"}
+                                  </span>
+                                  <span class="flex items-center gap-1">
+                                    <i data-lucide="clock-3" class="w-3.5 h-3.5"></i>
+                                    ${formatarHorario(e.horario)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="shrink-0 flex items-center gap-2">
+                              <span class="text-xs font-black px-3 py-1.5 rounded-full ${statusStyle.badge}">
+                                ${statusStyle.label}
+                              </span>
+                            </div>
+                          </div>
+                        `;
+                      }).join("")}
+                    </div>
+                  `
+              }
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderErro(message = "Erro ao carregar dados.") {
+      document.getElementById("fila-espera").innerHTML = `
+        <div class="bg-white rounded-3xl border border-red-100 p-8 card-shadow text-center">
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-4">
+            <i data-lucide="alert-triangle" class="w-7 h-7"></i>
+          </div>
+          <h3 class="font-extrabold text-slate-800 mb-1">Falha ao carregar</h3>
+          <p class="text-sm text-slate-500">${message}</p>
+        </div>
+      `;
+
+      document.getElementById("motoristas-grid").innerHTML = "";
+    }
+
+    function aplicarFiltroLocal() {
+      const termo = document.getElementById("busca-geral").value.trim().toLowerCase();
+
+      if (!termo) {
+        renderResumo(dashboardData.resumo || {});
+        renderFila(dashboardData.filaEspera || []);
+        renderMotoristas(dashboardData.motoristas || []);
+        lucide.createIcons();
+        return;
+      }
+
+      const filaFiltrada = (dashboardData.filaEspera || []).filter((item) => {
+        return (
+          (item.cliente || "").toLowerCase().includes(termo) ||
+          (item.bairro || "").toLowerCase().includes(termo) ||
+          (item.id || "").toLowerCase().includes(termo)
+        );
+      });
+
+      const motoristasFiltrados = (dashboardData.motoristas || [])
+        .map((motorista) => {
+          const entregasFiltradas = (motorista.entregas || []).filter((entrega) => {
+            return (
+              (motorista.nome || "").toLowerCase().includes(termo) ||
+              (motorista.veiculo || "").toLowerCase().includes(termo) ||
+              (entrega.cliente || "").toLowerCase().includes(termo) ||
+              (entrega.bairro || "").toLowerCase().includes(termo) ||
+              (entrega.status || "").toLowerCase().includes(termo)
+            );
+          });
+
+          if ((motorista.nome || "").toLowerCase().includes(termo) && entregasFiltradas.length === 0) {
+            return motorista;
+          }
+
+          return {
+            ...motorista,
+            entregas: entregasFiltradas,
+            resumo: {
+              pendentes: entregasFiltradas.filter(e => e.status === "Pendente").length,
+              emRota: entregasFiltradas.filter(e => e.status === "Em Rota").length,
+              entregues: entregasFiltradas.filter(e => e.status === "Entregue").length,
+              cancelados: entregasFiltradas.filter(e => e.status === "Cancelado").length,
+              total: entregasFiltradas.length,
+            }
+          };
+        })
+        .filter((motorista) => {
+          return (
+            (motorista.nome || "").toLowerCase().includes(termo) ||
+            (motorista.entregas || []).length > 0
+          );
+        });
+
+      renderFila(filaFiltrada);
+      renderMotoristas(motoristasFiltrados);
+      lucide.createIcons();
+    }
+
+    async function atualizarPainel() {
+      const data = document.getElementById("data-filtro").value;
+      atualizarBadgeHoje();
+      setLoading();
+
+      try {
+        const response = await fetch(`${API_URL}?date=${data}`);
+
+        if (!response.ok) {
+          throw new Error(`Erro HTTP ${response.status}`);
         }
 
-        window.onload = () => {
-            document.getElementById('data-filtro').value = new Date().toISOString().split('T')[0];
-            atualizarPainel();
-        };
-    </script>
+        const dataApi = await response.json();
+        dashboardData = dataApi;
+
+        renderResumo(dataApi.resumo || {});
+        renderFila(dataApi.filaEspera || []);
+        renderMotoristas(dataApi.motoristas || []);
+      } catch (error) {
+        console.error("Erro ao atualizar painel:", error);
+        renderErro("Não foi possível buscar os dados do dashboard.");
+      }
+
+      lucide.createIcons();
+    }
+
+    window.onload = () => {
+      const hoje = formatarDataISO();
+      document.getElementById("data-filtro").value = hoje;
+      atualizarBadgeHoje();
+      atualizarPainel();
+    };
+  </script>
 </body>
 </html>
